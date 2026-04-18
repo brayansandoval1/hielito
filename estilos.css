@@ -1,0 +1,237 @@
+
+        :root {
+            --azul-hielo-claro: #f0f7ff; /* Fondo de la página */
+            --azul-principal: #1e88e5; /* El azul del logo */
+            --azul-fuerte-textos: #0d47a1; /* Azul oscuro para títulos */
+            --amarillo-ver-productos: #fbc02d; /* Botón amarillo */
+            --gris-texto: #5c5c5c; /* Texto descriptivo */
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: var(--azul-hielo-claro);
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        /* --- Barra de Navegación --- */
+        .custom-navbar {
+            background-color: white !important;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .navbar-brand img {
+            height: 60px; /* Ajusta según el tamaño de tu logo */
+        }
+
+        .navbar-nav .nav-link {
+            color: var(--azul-fuerte-textos) !important;
+            font-weight: 600;
+            padding: 10px 15px !important;
+        }
+
+        .navbar-nav .nav-link:hover {
+            color: var(--azul-principal) !important;
+        }
+
+        /* --- Sección Hero --- */
+        .hero-section {
+            background: linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6)),
+                        url('https://placehold.co/1920x600/b0e0f3/ffffff?text=Hielo+y+Palmas') center/cover no-repeat;
+            padding: 120px 0;
+            color: var(--azul-fuerte-textos);
+            text-align: left;
+        }
+
+        /* --- Reemplaza esta URL con una imagen real de hielo y palmeras --- */
+        .hero-section {
+            background-image: url('img/fondos.jpeg');
+        }
+
+        .hero-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 4rem;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 40px;
+        }
+
+        .btn-ver-productos {
+            background-color: var(--amarillo-ver-productos);
+            color: #333;
+            font-weight: 700;
+            padding: 15px 40px;
+            border-radius: 50px;
+            text-transform: uppercase;
+            font-size: 1.1rem;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-ver-productos:hover {
+            background-color: #fdd835;
+        }
+
+        /* --- Sección de Productos --- */
+        #productos {
+            padding: 80px 0;
+            background-color: white;
+            border-radius: 50px 50px 0 0; /* Bordes redondeados de la sección */
+        }
+
+        .seccion-titulo {
+            color: var(--azul-fuerte-textos);
+            font-weight: 700;
+            margin-bottom: 60px;
+            text-align: center;
+        }
+
+        .product-card {
+            border-radius: 20px;
+            background: white;
+            border: 2px solid #e0f2f1; /* Borde muy suave */
+            transition: transform 0.3s ease;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        .product-card-body {
+            padding: 30px;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .product-card img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+        }
+
+        .product-card h3 {
+            color: var(--azul-fuerte-textos);
+            font-weight: 700;
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+        }
+
+        .product-desc {
+            color: var(--gris-texto);
+            margin-bottom: 15px;
+        }
+
+        .product-sizes {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .badge-size {
+            background-color: #e0f2f1;
+            color: #00796b;
+            font-weight: 700;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .badge-raspado {
+            background-color: #c62828;
+            color: white;
+            font-weight: 700;
+            padding: 10px 20px;
+            border-radius: 20px;
+            text-transform: uppercase;
+        }
+
+        /* --- Footer --- */
+        .custom-footer {
+            background-color: var(--azul-fuerte-textos);
+            color: white;
+            padding: 80px 0;
+            border-radius: 0 0 50px 50px;
+        }
+
+        /* --- Sección Nosotros --- */
+        #nosotros {
+            padding: 80px 0;
+            background-color: white;
+            border-radius: 50px 50px 0 0;
+            margin-top: 50px;
+        }
+
+        #nosotros .lead {
+            font-size: 1.25rem;
+            font-weight: 400;
+            line-height: 1.6;
+        }
+
+        #nosotros h5 {
+            color: var(--azul-fuerte-textos);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        #nosotros ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #nosotros li {
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        #nosotros li:before {
+            content: '\2713';
+            position: absolute;
+            left: 0;
+            color: var(--amarillo-ver-productos);
+            font-weight: bold;
+        }
+
+        #nosotros .rounded {
+            border-radius: 15px !important;
+        }
+
+        #nosotros .shadow {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+        }
+
+        #nosotros .text-primary {
+            color: var(--azul-principal) !important;
+        }
+
+        #nosotros .text-warning {
+            color: var(--amarillo-ver-productos) !important;
+        }
+
+        #nosotros .text-info {
+            color: #17a2b8 !important;
+        }
+
+        #nosotros .text-danger {
+            color: #dc3545 !important;
+        }
+
+        #nosotros .text-success {
+            color: #28a745 !important;
+        }
+

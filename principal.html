@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hielito Mexicano | Fresco como México</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <link href="estilos.css" rel="stylesheet">
+    <!-- Cargar Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
+   
+    
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg custom-navbar sticky-top">
+        <div class="container">
+<a class="navbar-brand" href="#">
+                <img src="img/logo.jpeg" alt="Logo Hielito Mexicano" style="height: 80px;">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#inicio">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#productos">Productos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#mayoreo">Mayoreo</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#nosotros">Nosotros</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contacto">Contacto</a></li>
+                    <li class="nav-item"><button class="btn btn-outline-primary ms-lg-3" data-bs-toggle="modal" data-bs-target="#modalPedidos" id="btnVerPedidos">Mis Pedidos</button></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero-section" id="inicio">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-7">
+                    <h1 class="hero-title">FRESCO COMO MÉXICO.</h1>
+                    <p class="hero-subtitle">CALIDAD QUE PERMANECE.</p>
+                    <button class="btn btn-ver-productos">VER PRODUCTOS</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="productos">
+        <div class="container">
+            <h2 class="seccion-titulo h1">NUESTROS PRODUCTOS</h2>
+            
+            <div class="row g-4 justify-content-center">
+                
+                <div class="col-md-6 col-lg-3">
+                    <div class="product-card shadow-sm" data-bs-toggle="modal" data-bs-target="#modalBolsa">
+                        <div class="product-card-body">
+                            <img src="img/bolsa.jpeg" alt="Icono Bolsa de Hielo">
+                            <h3>HIELO EN BOLSA</h3>
+                            <p class="product-desc">Variedad de presentaciones para tu hogar o evento.</p>
+                            <div class="product-sizes">
+                                <span class="badge-size">1/2 kg</span>
+                                <span class="badge-size">1 Kilo</span>
+                                <span class="badge-size">2 Kilos</span>
+                                <span class="badge-size">3 Kilos</span>
+                                <span class="badge-size">5 Kilos</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-3">
+                    <div class="product-card shadow-sm" data-bs-toggle="modal" data-bs-target="#modalVasos">
+                        <div class="product-card-body">
+                            <img src="img/vaso.jpeg" alt="Vasos de Hielo">
+                            <h3>VASOS DE HIELO</h3>
+                            <p class="product-desc">Listos para servir en tus fiestas.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-3">
+                    <div class="product-card shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTriturado">
+                        <div class="product-card-body">
+                            <img src="img/triturado.jpeg" alt="Hielo para Raspado">
+                            <h3>HIELO TRITURADO PARA RASPADO</h3>
+                            <p class="product-desc">Textura perfecta para refrescar.</p>
+                            <span class="badge-raspado">¡Perfecto para Raspados!</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-3">
+                    <div class="product-card shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCubeta">
+                        <div class="product-card-body">
+                            <img src="img/cubeta.jpeg" alt="Hielo por Cubeta">
+                            <h3>HIELO POR CUBETA</h3>
+                            <p class="product-desc">Para bares y restaurantes.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-3">
+                    <div class="product-card shadow-sm" data-bs-toggle="modal" data-bs-target="#modalBloque">
+                        <div class="product-card-body">
+                            <img src="img/bloque.jpeg" alt="Hielo por Bloque">
+                            <h3>HIELO POR BLOQUE</h3>
+                            <p class="product-desc">Máxima duración para enfriar grandes volúmenes.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <section id="nosotros" class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6">
+                    <h2 class="h1 mb-4" style="color: var(--azul-fuerte-textos);">NOSOTROS</h2>
+                    <p class="lead mb-4" style="color: var(--gris-texto);">
+                        En Hielito Mexicano nos dedicamos a ofrecer productos de hielo de la más alta calidad, 
+                        frescos como México y con la calidez que nos caracteriza. Nuestra misión es ser tu 
+                        proveedor confiable para todas tus necesidades de refrigeración.
+                    </p>
+                    <p class="mb-4" style="color: var(--gris-texto);">
+                        Con años de experiencia en el mercado, hemos perfeccionado nuestros procesos para 
+                        garantizar que cada bolsa, vaso o bloque de hielo cumpla con los estándares más exigentes. 
+                        Nuestro compromiso es la calidad, la puntualidad y el servicio excepcional.
+                    </p>
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h5 style="color: var(--azul-fuerte-textos);"><strong>¿Por qué elegirnos?</strong></h5>
+                            <ul class="list-unstyled" style="color: var(--gris-texto);">
+                                <li><i class="bi bi-check-circle-fill text-primary"></i> Calidad garantizada</li>
+                                <li><i class="bi bi-check-circle-fill text-primary"></i> Entrega puntual</li>
+                                <li><i class="bi bi-check-circle-fill text-primary"></i> Precios competitivos</li>
+                                <li><i class="bi bi-check-circle-fill text-primary"></i> Servicio personalizado</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 style="color: var(--azul-fuerte-textos);"><strong>Nuestros valores</strong></h5>
+                            <ul class="list-unstyled" style="color: var(--gris-texto);">
+                                <li><i class="bi bi-award-fill text-warning"></i> Compromiso</li>
+                                <li><i class="bi bi-people-fill text-info"></i> Honestidad</li>
+                                <li><i class="bi bi-heart-fill text-danger"></i> Pasión por el servicio</li>
+                                <li><i class="bi bi-shield-check text-success"></i> Confianza</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <img src="https://placehold.co/500x400/1e88e5/ffffff?text=Nuestro+Equipo" 
+                         alt="Nuestro equipo de trabajo" class="img-fluid rounded shadow">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="custom-footer" id="contacto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 footer-col">
+                    <h4>HIELITO MEXICANO</h4>
+                    <p>Fresco como México.<br>Calidad que permanece.</p>
+                </div>
+                <div class="col-md-4 footer-col">
+                    <h4>Contacto</h4>
+                    <ul>
+                        <li>📍 Ubicación: Ciudad de México, México</li>
+                        <li>📞 Tel: +33 (02) 456-7890</li>
+                        <li>✉️ E-mail: info@hielitomexicano.com</li>
+                    </ul>
+                </div>
+                <div class="col-md-4 footer-col">
+                    <h4>Enlaces</h4>
+                    <ul>
+                        <li><a href="#inicio" class="text-white text-decoration-none">Inicio</a></li>
+                        <li><a href="#productos" class="text-white text-decoration-none">Productos</a></li>
+                        <li><a href="#contacto" class="text-white text-decoration-none">Contacto</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <small>&copy; 2026 Hielito Mexicano - Todos los derechos reservados.</small>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="main.js"></script>
+
+    <!-- Modal para Hielo en Bolsa -->
+    <div class="modal fade" id="modalBolsa" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">HIELO EN BOLSA</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <img src="img/bolsa.jpeg" alt="Hielo en Bolsa" class="img-fluid rounded">
+                            </div>
+                            <div class="col-md-6">
+                                <h4 class="mb-3">Precios y Presentaciones</h4>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Presentación</th>
+                                                <th>Precio</th>
+                                                <th>Ideal para</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>1/2 kg</td>
+                                                <td>$25</td>
+                                                <td>Eventos pequeños</td>
+                                            </tr>
+                                            <tr>
+                                                <td>1 kg</td>
+                                                <td>$40</td>
+                                                <td>Eventos medianos</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2 kg</td>
+                                                <td>$70</td>
+                                                <td>Eventos grandes</td>
+                                            </tr>
+                                            <tr>
+                                                <td>3 kg</td>
+                                                <td>$95</td>
+                                                <td>Eventos masivos</td>
+                                            </tr>
+                                            <tr>
+                                                <td>5 kg</td>
+                                                <td>$150</td>
+                                                <td>Eventos corporativos</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p class="text-muted small">* Precios sujetos a cambios. Consulta promociones especiales.</p>
+                                
+                                <!-- Contenedor para Stripe Elements -->
+                                <div class="mt-4 p-3 border rounded bg-light">
+                                    <label class="form-label fw-bold">Pago Seguro con Tarjeta</label>
+                                    <div id="card-element-bolsa"></div>
+                                    <div id="card-errors" class="text-danger mt-2" role="alert"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary btn-pagar" data-product-id="1">Pagar Ahora</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Vasos de Hielo -->
+    <div class="modal fade" id="modalVasos" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">VASOS DE HIELO</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <img src="img/vaso.jpeg" alt="Vasos de Hielo" class="img-fluid rounded">
+                            </div>
+                            <div class="col-md-6">
+                                <h4 class="mb-3">Precios y Presentaciones</h4>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Cantidad</th>
+                                                <th>Precio</th>
+                                                <th>Ideal para</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>10 vasos</td>
+                                                <td>$80</td>
+                                                <td>Fiesta pequeña</td>
+                                            </tr>
+                                            <tr>
+                                                <td>25 vasos</td>
+                                                <td>$180</td>
+                                                <td>Fiesta mediana</td>
+                                            </tr>
+                                            <tr>
+                                                <td>50 vasos</td>
+                                                <td>$320</td>
+                                                <td>Fiesta grande</td>
+                                            </tr>
+                                            <tr>
+                                                <td>100 vasos</td>
+                                                <td>$550</td>
+                                                <td>Evento corporativo</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p class="text-muted small">* Precios por unidad. Incluye vaso y hielo.</p>
+
+                                <!-- Contenedor para Stripe Elements -->
+                                <div class="mt-4 p-3 border rounded bg-light">
+                                    <label class="form-label fw-bold">Pago Seguro con Tarjeta</label>
+                                    <div id="card-element-vasos"></div>
+                                    <div id="card-errors-vasos" class="text-danger mt-2" role="alert"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary btn-pagar" data-product-id="2">Pagar Ahora</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Hielo Triturado para Raspado -->
+    <div class="modal fade" id="modalTriturado" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">HIELO TRITURADO PARA RASPADO</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <img src="img/triturado.jpeg" alt="Hielo Triturado para Raspado" class="img-fluid rounded">
+                            </div>
+                            <div class="col-md-6">
+                                <h4 class="mb-3">Precios y Presentaciones</h4>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Presentación</th>
+                                                <th>Precio</th>
+                                                <th>Ideal para</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>1 kg</td>
+                                                <td>$35</td>
+                                                <td>Raspados individuales</td>
+                                            </tr>
+                                            <tr>
+                                                <td>5 kg</td>
+                                                <td>$150</td>
+                                                <td>Puesto de raspados</td>
+                                            </tr>
+                                            <tr>
+                                                <td>10 kg</td>
+                                                <td>$280</td>
+                                                <td>Evento grande</td>
+                                            </tr>
+                                            <tr>
+                                                <td>20 kg</td>
+                                                <td>$500</td>
+                                                <td>Feria o festival</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p class="text-muted small">* Textura perfecta para raspados. Mantiene frescura por más tiempo.</p>
+
+                                <!-- Contenedor para Stripe Elements -->
+                                <div class="mt-4 p-3 border rounded bg-light">
+                                    <label class="form-label fw-bold">Pago Seguro con Tarjeta</label>
+                                    <div id="card-element-triturado"></div>
+                                    <div id="card-errors-triturado" class="text-danger mt-2" role="alert"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary btn-pagar" data-product-id="3">Pagar Ahora</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Hielo por Cubeta -->
+    <div class="modal fade" id="modalCubeta" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">HIELO POR CUBETA</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <img src="img/cubeta.jpeg" alt="Hielo por Cubeta" class="img-fluid rounded">
+                            </div>
+                            <div class="col-md-6">
+                                <h4 class="mb-3">Precios y Presentaciones</h4>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Cantidad</th>
+                                                <th>Precio</th>
+                                                <th>Ideal para</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>1 cubeta</td>
+                                                <td>$120</td>
+                                                <td>Bar pequeño</td>
+                                            </tr>
+                                            <tr>
+                                                <td>3 cubetas</td>
+                                                <td>$320</td>
+                                                <td>Restaurante</td>
+                                            </tr>
+                                            <tr>
+                                                <td>5 cubetas</td>
+                                                <td>$500</td>
+                                                <td>Bar grande</td>
+                                            </tr>
+                                            <tr>
+                                                <td>10 cubetas</td>
+                                                <td>$900</td>
+                                                <td>Hotel o evento</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p class="text-muted small">* Cubetas de 20 kg cada una. Hielo de alta calidad para servicio continuo.</p>
+
+                                <!-- Contenedor para Stripe Elements -->
+                                <div class="mt-4 p-3 border rounded bg-light">
+                                    <label class="form-label fw-bold">Pago Seguro con Tarjeta</label>
+                                    <div id="card-element-cubeta"></div>
+                                    <div id="card-errors-cubeta" class="text-danger mt-2" role="alert"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary btn-pagar" data-product-id="4">Pagar Ahora</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Hielo por Bloque -->
+    <div class="modal fade" id="modalBloque" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">HIELO POR BLOQUE</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <img src="img/bloque.jpeg" alt="Hielo por Bloque" class="img-fluid rounded">
+                            </div>
+                            <div class="col-md-6">
+                                <h4 class="mb-3">Precios y Presentaciones</h4>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Peso</th>
+                                                <th>Precio</th>
+                                                <th>Ideal para</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>10 kg</td>
+                                                <td>$180</td>
+                                                <td>Enfriar pescados</td>
+                                            </tr>
+                                            <tr>
+                                                <td>20 kg</td>
+                                                <td>$320</td>
+                                                <td>Eventos grandes</td>
+                                            </tr>
+                                            <tr>
+                                                <td>50 kg</td>
+                                                <td>$750</td>
+                                            <td>Embarcaciones</td>
+                                            </tr>
+                                            <tr>
+                                                <td>100 kg</td>
+                                                <td>$1,400</td>
+                                                <td>Industria</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p class="text-muted small">* Máxima duración. Ideal para enfriamiento prolongado.</p>
+
+                                <!-- Contenedor para Stripe Elements -->
+                                <div class="mt-4 p-3 border rounded bg-light">
+                                    <label class="form-label fw-bold">Pago Seguro con Tarjeta</label>
+                                    <div id="card-element-bloque"></div>
+                                    <div id="card-errors-bloque" class="text-danger mt-2" role="alert"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary btn-pagar" data-product-id="5">Pagar Ahora</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Ver Pedidos -->
+    <div class="modal fade" id="modalPedidos" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">HISTORIAL DE PEDIDOS</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="lista-pedidos" class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Fecha</th>
+                                    <th>Cantidad</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-pedidos-body">
+                                <!-- Los pedidos se cargarán aquí con JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</html>
