@@ -5,11 +5,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 import stripe
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 import traceback
 import os
 
 # Configurar Stripe
 stripe.api_key = os.getenv('STRIPE_API_KEY')
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 
 # Blueprint de autenticación
 auth = Blueprint('auth', __name__)
@@ -23,7 +26,7 @@ def register():
     if User.query.filter_by(email=data['email']).first():
         return jsonify({'error': 'Email ya registrado'}), 400
 
-    hashed_password = generate_password_hash(data['password'])
+    hashed_password = generate_password_hash(data['password'], method='pbkdf2:sha256')
     new_user = User(
         username=data['username'],
         email=data['email'],
@@ -44,11 +47,62 @@ def login():
     if not user or not check_password_hash(user.password, data['password']):
         return jsonify({'error': 'Credenciales inválidas'}), 401
 
-    access_token = create_access_token(identity=user.id, expires_delta=timedelta(hours=24))
+    access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=24))
     return jsonify({
         'access_token': access_token,
         'user': user.to_dict()
     }), 200
+
+@auth.route('/google-login', methods=['POST'])
+def google_login():
+    data = request.get_json()
+    token = data.get('id_token')
+
+    try:
+        # Verificar el token con Google
+        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+
+        # Obtener información del usuario desde Google
+        email = idinfo['email']
+        username = idinfo.get('name', email.split('@')[0])
+
+        # Buscar si el usuario ya existe
+        user = User.query.filter_by(email=email).first()
+
+        if not user:
+            # Asegurar que el username sea único y no exceda el límite de 80 caracteres
+            base_username = username[:70]
+            final_username = base_username
+            counter = 1
+            while User.query.filter_by(username=final_username).first():
+                final_username = f"{base_username}{counter}"
+                counter += 1
+
+            # Si no existe, lo registramos
+            user = User(
+                username=final_username,
+                email=email,
+                password=generate_password_hash(os.urandom(24).hex(), method='pbkdf2:sha256')
+            )
+            db.session.add(user)
+            db.session.commit()
+
+        # Generar token JWT (convertimos ID a string para asegurar compatibilidad de serialización)
+        access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=24))
+        
+        return jsonify({
+            'access_token': access_token,
+            'user': user.to_dict(),
+            'message': 'Inicio de sesión con Google exitoso'
+        }), 200
+
+    except ValueError:
+        # Token inválido
+        return jsonify({'error': 'Token de Google inválido'}), 400
+    except Exception as e:
+        db.session.rollback()
+        print(f"--- ERROR EN GOOGLE LOGIN ---\n{traceback.format_exc()}")
+        return jsonify({'error': 'Error interno al procesar el acceso con Google'}), 500
 
 # Blueprint de productos
 products = Blueprint('products', __name__)
@@ -67,18 +121,21 @@ def get_product(product_id):
 payments = Blueprint('payments', __name__)
 
 @payments.route('/process', methods=['POST'])
-# @jwt_required()  # Comentado para que puedas probar sin haber iniciado sesión
+@jwt_required()
 def process_payment():
-    data = request.get_json()
-    current_user = 1 # Usamos el ID del usuario de prueba que creamos con seed_db.py
+    data = request.get_json(silent=True)
 
+    if not data:
+        return jsonify({"error": "No se recibió información de pago"}), 422
+
+    current_user = int(get_jwt_identity())
     # Verificar si el usuario existe para evitar el error 500
     user = User.query.get(current_user)
     if not user:
         return jsonify({'error': f'El usuario de prueba con ID {current_user} no existe en la DB. Ejecuta seed_db.py'}), 404
 
     if not data or not data.get('product_id') or not data.get('quantity') or not data.get('payment_method'):
-        return jsonify({'error': 'Faltan datos'}), 400
+        return jsonify({'error': 'Faltan datos obligatorios'}), 422
 
     product = Product.query.get(data['product_id'])
     if not product:
