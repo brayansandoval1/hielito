@@ -203,14 +203,14 @@ orders = Blueprint('orders', __name__)
 @orders.route('/', methods=['GET'])
 @jwt_required()
 def get_orders():
-    current_user = get_jwt_identity()
+    current_user = int(get_jwt_identity())
     orders = Order.query.filter_by(user_id=current_user).all()
     return jsonify([order.to_dict() for order in orders]), 200
 
 @orders.route('/<int:order_id>', methods=['GET'])
 @jwt_required()
 def get_order(order_id):
-    current_user = get_jwt_identity()
+    current_user = int(get_jwt_identity())
     order = Order.query.filter_by(id=order_id, user_id=current_user).first_or_404()
     return jsonify(order.to_dict()), 200
 

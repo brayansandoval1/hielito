@@ -10,6 +10,9 @@ class User(db.Model):
     def to_dict(self):
         return {"id": self.id, "username": self.username, "email": self.email}
 
+    def __repr__(self):
+        return f'<User {self.username} ({self.email})>'
+
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -28,6 +31,9 @@ class Product(db.Model):
             "image_url": self.image_url
         }
 
+    def __repr__(self):
+        return f'<Product {self.name} - ${self.price}>'
+
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -36,15 +42,22 @@ class Order(db.Model):
     total = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Relación para obtener detalles del producto en el historial
+    product = db.relationship('Product', backref='orders')
+
     def to_dict(self):
         return {
             "id": self.id,
             "user_id": self.user_id,
             "product_id": self.product_id,
+            "product_name": self.product.name if self.product else "Producto eliminado",
             "quantity": self.quantity,
             "total": self.total,
             "created_at": self.created_at.isoformat()
         }
+
+    def __repr__(self):
+        return f'<Order ID: {self.id} - User: {self.user_id} - Total: ${self.total}>'
 
 class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)

@@ -26,6 +26,7 @@ window.handleGoogleSignIn = async (response) => {
         const data = await res.json();
         if (res.ok) {
             localStorage.setItem('token', data.access_token);
+            localStorage.setItem('username', data.user.username);
             location.reload();
         } else {
             alert("Error con Google Login: " + (data.error || "Algo salió mal."));
@@ -81,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 if (response.ok) {
                     localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('username', data.user.username);
                     location.reload();
                 } else {
                     alert("Error: " + data.error);
@@ -155,11 +157,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function updateAuthUI() {
     const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
     const authNavItem = document.getElementById('auth-nav-item');
+    
     if (token && authNavItem) {
-        authNavItem.innerHTML = `<button class="btn btn-danger ms-lg-3" id="btnLogout">Cerrar Sesión</button>`;
+        authNavItem.innerHTML = `
+            <div class="d-flex align-items-center">
+                <span class="navbar-text me-3 fw-bold" style="color: var(--azul-fuerte-textos);">Hola, ${username}</span>
+                <button class="btn btn-sm btn-outline-danger" id="btnLogout">Cerrar Sesión</button>
+            </div>
+        `;
         document.getElementById('btnLogout').addEventListener('click', () => {
             localStorage.removeItem('token');
+            localStorage.removeItem('username');
             location.reload();
         });
     }
@@ -199,6 +209,7 @@ async function loadOrders() {
         tbody.innerHTML = orders.map(order => `
             <tr>
                 <td>#${order.id}</td>
+                <td>${order.product_name}</td>
                 <td>${new Date(order.created_at).toLocaleDateString()}</td>
                 <td>${order.quantity} unidades</td>
                 <td>$${order.total.toFixed(2)} MXN</td>
