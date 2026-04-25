@@ -237,9 +237,11 @@ window.openCategory = (id) => {
             <td class="text-primary fw-bold">$${p.price.toFixed(2)}</td>
             <td><small class="text-muted">${p.ideal_for || '-'}</small></td>
             <td>
-                <div class="d-flex gap-2 align-items-center">
+                <div class="d-flex gap-2 align-items-center justify-content-end">
                     <input type="number" id="qty-${p.id}" class="form-control form-control-sm" value="1" min="1" style="width: 60px;">
-                    <button class="btn btn-sm btn-primary" onclick="addToCartFromModal(${p.id}, '${p.name}', ${p.price})">🛒</button>
+                    <button class="btn btn-sm btn-primary d-flex align-items-center" onclick="addToCartFromModal(${p.id}, '${p.name}', ${p.price})">
+                        <i class="bi bi-cart-plus-fill me-1"></i> 
+                    </button>
                 </div>
             </td>
         </tr>
@@ -327,6 +329,8 @@ function renderCart() {
         container.innerHTML = '<p class="text-center py-4">Tu carrito está vacío.</p>';
         totalElement.textContent = '$0.00';
         weightElement.textContent = '0.0 kg';
+        // Si el carrito está vacío, ocultamos la alerta de entrega inmediatamente
+        if (deliveryInfo) deliveryInfo.classList.add('d-none');
         return;
     }
 
