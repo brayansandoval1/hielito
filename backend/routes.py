@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_from_directory
 from backend import db, jwt
-from backend.models import User, Product, Order, Payment
+from backend.models import User, Product, Order, Payment, Category, OrderItem
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
@@ -11,8 +11,15 @@ import traceback
 import os
 
 # Configurar Stripe
-stripe.api_key = os.getenv('STRIPE_API_KEY')
-GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+def get_google_client_id():
+    # Intentamos obtenerlo de la variable global o directamente del entorno
+    client_id = os.getenv('GOOGLE_CLIENT_ID')
+    if not client_id:
+        # Intento de respaldo por si el módulo se cargó antes que el .env
+        from dotenv import load_dotenv
+        load_dotenv()
+        client_id = os.getenv('GOOGLE_CLIENT_ID')
+    return client_id
 
 # Blueprint de autenticación
 auth = Blueprint('auth', __name__)
@@ -33,9 +40,22 @@ def register():
         password=hashed_password
     )
     db.session.add(new_user)
-    db.session.commit()
-
-    return jsonify({'message': 'Usuario registrado exitosamente'}), 201
+    
+    # Manejo de reintentos para evitar bloqueos de SQLite
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            db.session.commit()
+            return jsonify({'message': 'Usuario registrado exitosamente'}), 201
+        except Exception as e:
+            db.session.rollback()
+            if 'locked' in str(e).lower() and attempt < max_retries - 1:
+                import time
+                time.sleep(0.5)
+                db.session.add(new_user) # Re-añadimos tras el rollback
+            else:
+                print(f"Error en registro: {traceback.format_exc()}")
+                return jsonify({'error': 'La base de datos está ocupada. Asegúrate de cerrar DB Browser.'}), 500
 
 @auth.route('/login', methods=['POST'])
 def login():
@@ -56,11 +76,37 @@ def login():
 @auth.route('/google-login', methods=['POST'])
 def google_login():
     data = request.get_json()
+    if not data or 'id_token' not in data:
+        return jsonify({'error': 'No se proporcionó el token de Google'}), 400
+
     token = data.get('id_token')
+
+    client_id = get_google_client_id()
+    if not client_id:
+        print("CRÍTICO: GOOGLE_CLIENT_ID no está definido en las variables de entorno (.env)")
+        return jsonify({'error': 'Configuración del servidor incompleta'}), 500
 
     try:
         # Verificar el token con Google
-        idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_CLIENT_ID)
+        # Agregamos clock_skew para tolerar desincronizacion de tiempo entre cliente/servidor
+        # Nota: El parametro correcto es clock_skew, no clock_skew_in_seconds
+        # Parametro clock_skew compatible con todas las versiones de google-auth
+        try:
+            # Version nueva
+            idinfo = id_token.verify_oauth2_token(
+                token, 
+                google_requests.Request(), 
+                client_id,
+                clock_skew_in_seconds=30
+            )
+        except TypeError:
+            # Version antigua
+            idinfo = id_token.verify_oauth2_token(
+                token, 
+                google_requests.Request(), 
+                client_id,
+                clock_skew=30
+            )
 
         # Obtener información del usuario desde Google
         email = idinfo['email']
@@ -71,12 +117,20 @@ def google_login():
 
         if not user:
             # Asegurar que el username sea único y no exceda el límite de 80 caracteres
+            # Metodo optimizado: busqueda en una sola consulta sin ciclo
             base_username = username[:70]
-            final_username = base_username
-            counter = 1
-            while User.query.filter_by(username=final_username).first():
-                final_username = f"{base_username}{counter}"
-                counter += 1
+            existing_users = User.query.filter(User.username.like(f"{base_username}%")).all()
+            existing_suffixes = []
+            
+            for u in existing_users:
+                suffix = u.username.replace(base_username, "")
+                if suffix.isdigit():
+                    existing_suffixes.append(int(suffix))
+            
+            if not existing_suffixes:
+                final_username = base_username
+            else:
+                final_username = f"{base_username}{max(existing_suffixes) + 1}"
 
             # Si no existe, lo registramos
             user = User(
@@ -85,7 +139,20 @@ def google_login():
                 password=generate_password_hash(os.urandom(24).hex(), method='pbkdf2:sha256')
             )
             db.session.add(user)
-            db.session.commit()
+            # Reintentos automaticos para evitar database is locked en SQLite
+            max_retries = 5
+            for attempt in range(max_retries):
+                try:
+                    db.session.commit()
+                    break
+                except Exception as e:
+                    db.session.rollback()
+                    if 'locked' in str(e).lower() and attempt < max_retries -1:
+                        import time
+                        time.sleep(0.5)
+                        db.session.add(user) # Re-añadir el objeto tras rollback
+                    else:
+                        raise
 
         # Generar token JWT (convertimos ID a string para asegurar compatibilidad de serialización)
         access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=24))
@@ -96,9 +163,10 @@ def google_login():
             'message': 'Inicio de sesión con Google exitoso'
         }), 200
 
-    except ValueError:
-        # Token inválido
-        return jsonify({'error': 'Token de Google inválido'}), 400
+    except ValueError as e:
+        # Token inválido o problema de configuración
+        print(f"Error de validación de Google: {str(e)}")
+        return jsonify({'error': f'Token de Google inválido: {str(e)}'}), 400
     except Exception as e:
         db.session.rollback()
         print(f"--- ERROR EN GOOGLE LOGIN ---\n{traceback.format_exc()}")
@@ -109,8 +177,8 @@ products = Blueprint('products', __name__)
 
 @products.route('/', methods=['GET'])
 def get_products():
-    products = Product.query.all()
-    return jsonify([product.to_dict() for product in products]), 200
+    categories = Category.query.all()
+    return jsonify([cat.to_dict() for cat in categories]), 200
 
 @products.route('/<int:product_id>', methods=['GET'])
 def get_product(product_id):
@@ -134,27 +202,46 @@ def process_payment():
     if not user:
         return jsonify({'error': f'El usuario de prueba con ID {current_user} no existe en la DB. Ejecuta seed_db.py'}), 404
 
-    if not data or not data.get('product_id') or not data.get('quantity') or not data.get('payment_method'):
+    if not stripe.api_key:
+        return jsonify({'error': 'La clave API de Stripe no está configurada en el servidor.'}), 500
+
+    if not data or not data.get('items') or not data.get('payment_method'):
         return jsonify({'error': 'Faltan datos obligatorios'}), 422
 
-    product = Product.query.get(data['product_id'])
-    if not product:
-        return jsonify({'error': 'Producto no encontrado'}), 404
+    total = 0
+    items_to_process = []
+    
+    # Validar todos los productos primero
+    for item in data['items']:
+        product = Product.query.get(item['product_id'])
+        if not product or product.stock < item['quantity']:
+            print(f"Error de stock: Producto {product.name if product else item['product_id']} - Solicitado: {item['quantity']}, Disponible: {product.stock if product else 'N/A'}")
+            return jsonify({'error': f'Stock insuficiente para {product.name if product else "producto desconocido"}'}), 400
+        
+        total += product.price * item['quantity']
+        items_to_process.append((product, item['quantity']))
 
-    if product.stock < data['quantity']:
-        return jsonify({'error': 'Stock insuficiente'}), 400
-
-    total = product.price * data['quantity']
-
-    # Crear orden
     order = Order(
         user_id=current_user,
-        product_id=product.id,
-        quantity=data['quantity'],
-        total=total
+        total=total,
+        status='Pendiente de envío',
+        phone=data.get('phone'),
+        address=data.get('address'),
+        delivery_date=data.get('delivery_date'),
+        delivery_time=data.get('delivery_time')
     )
     db.session.add(order)
     db.session.flush()
+
+    for product, quantity in items_to_process:
+        item = OrderItem(
+            order_id=order.id,
+            product_id=product.id,
+            quantity=quantity,
+            price=product.price
+        )
+        db.session.add(item)
+        product.stock -= quantity
 
     # Procesar pago con Stripe
     try:
@@ -178,8 +265,6 @@ def process_payment():
         db.session.add(payment)
         db.session.flush()
 
-        # Actualizar stock
-        product.stock -= data['quantity']
         db.session.commit()
 
         return jsonify({
@@ -190,6 +275,7 @@ def process_payment():
         }), 201
 
     except stripe.error.StripeError as e:
+        print(f"Error de Stripe: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
     except Exception as e:

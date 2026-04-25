@@ -1,5 +1,6 @@
 from backend import create_app, db
 from backend.models import Product
+from sqlalchemy import text
 
 app = create_app()
 
@@ -9,4 +10,5 @@ def init_db():
     print("Base de datos inicializada.")
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # IMPORTANTE: Desactivar threading para SQLite
+    app.run(debug=True, threaded=False)

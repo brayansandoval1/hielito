@@ -14,7 +14,10 @@ setup(
         'Werkzeug==2.3.7',
         'python-dotenv==1.0.0',
         'stripe==15.0.1',
-        'psycopg2-binary==2.9.9'
+        'psycopg2-binary==2.9.9',
+        'google-auth>=2.20.0',
+        'google-auth-oauthlib>=1.0.0',
+        'google-auth-httplib2>=0.1.0'
     ],
     include_package_data=True,
     zip_safe=False

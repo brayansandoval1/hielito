@@ -1,70 +1,92 @@
 from app import app, db
-from backend.models import Product, User
+from backend.models import Product, User, Category
 from werkzeug.security import generate_password_hash
 
 def seed_products():
     with app.app_context():
-        # Lista de productos iniciales
-        initial_products = [
+        print("Reiniciando base de datos...")
+        db.drop_all()
+        db.create_all()
+
+        # Crear usuario de prueba
+        test_user = User(
+            username="usuario_prueba",
+            email="test@hielito.com",
+            password=generate_password_hash("password123", method='pbkdf2:sha256')
+        )
+        db.session.add(test_user)
+
+        # Definir Categorías y sus productos dinámicos
+        data = [
             {
-                "id": 1,
-                "name": "Hielo en Bolsa",
+                "category": "HIELO EN BOLSA",
                 "description": "Variedad de presentaciones para tu hogar o evento.",
-                "price": 25.0,
-                "stock": 100,
-                "image_url": "img/bolsa.jpeg"
+                "image": "img/bolsa.jpeg",
+                "items": [
+                    {"name": "Bolsa 1/2 kg", "price": 25.0, "ideal": "Eventos pequeños"},
+                    {"name": "Bolsa 1 kg", "price": 40.0, "ideal": "Eventos medianos"},
+                    {"name": "Bolsa 2 kg", "price": 70.0, "ideal": "Eventos grandes"},
+                    {"name": "Bolsa 3 kg", "price": 95.0, "ideal": "Eventos masivos"},
+                    {"name": "Bolsa 5 kg", "price": 150.0, "ideal": "Eventos corporativos"}
+                ]
             },
             {
-                "id": 2,
-                "name": "Vasos de Hielo",
+                "category": "VASOS DE HIELO",
                 "description": "Listos para servir en tus fiestas.",
-                "price": 80.0,
-                "stock": 50,
-                "image_url": "img/vaso.jpeg"
+                "image": "img/vaso.jpeg",
+                "items": [
+                    {"name": "10 vasos", "price": 80.0, "ideal": "Fiesta pequeña"},
+                    {"name": "25 vasos", "price": 180.0, "ideal": "Fiesta mediana"},
+                    {"name": "50 vasos", "price": 320.0, "ideal": "Fiesta grande"},
+                    {"name": "100 vasos", "price": 550.0, "ideal": "Evento corporativo"}
+                ]
             },
             {
-                "id": 3,
-                "name": "Hielo Triturado",
-                "description": "Textura perfecta para raspados.",
-                "price": 35.0,
-                "stock": 200,
-                "image_url": "img/triturado.jpeg"
+                "category": "HIELO TRITURADO PARA RASPADO EN BOLSA",
+                "description": "Textura perfecta para refrescar.",
+                "image": "img/triturado.jpeg",
+                "items": [
+                    {"name": "1 kg", "price": 35.0, "ideal": "Raspados individuales"},
+                    {"name": "5 kg", "price": 150.0, "ideal": "Puesto de raspados"},
+                    {"name": "10 kg", "price": 280.0, "ideal": "Evento grande"},
+                    {"name": "20 kg", "price": 500.0, "ideal": "Feria o festival"}
+                ]
             },
             {
-                "id": 4,
-                "name": "Hielo por Cubeta",
+                "category": "HIELO POR CUBETA",
                 "description": "Para bares y restaurantes.",
-                "price": 120.0,
-                "stock": 30,
-                "image_url": "img/cubeta.jpeg"
-            },
-            {
-                "id": 5,
-                "name": "Hielo por Bloque",
-                "description": "Máxima duración para enfriar grandes volúmenes.",
-                "price": 180.0,
-                "stock": 15,
-                "image_url": "img/bloque.jpeg"
+                "image": "img/cubeta.jpeg",
+                "items": [
+                    {"name": "1 cubeta", "price": 120.0, "ideal": "Bar pequeño"},
+                    {"name": "3 cubetas", "price": 320.0, "ideal": "Restaurante"},
+                    {"name": "5 cubetas", "price": 500.0, "ideal": "Bar grande"},
+                    {"name": "10 cubetas", "price": 900.0, "ideal": "Hotel o evento"}
+                ]
             }
         ]
 
-        # Crear usuario de prueba con ID 1 si no existe
-        if not User.query.get(1):
-            test_user = User(
-                id=1,
-                username="usuario_prueba",
-                email="test@hielito.com",
-                password=generate_password_hash("password123")
+        for cat_data in data:
+            category = Category(
+                name=cat_data["category"],
+                description=cat_data["description"],
+                image_url=cat_data["image"]
             )
-            db.session.add(test_user)
+            db.session.add(category)
+            db.session.flush() # Para obtener el ID de la categoría y asignarlo a los productos
 
-        for p_data in initial_products:
-            if not Product.query.get(p_data["id"]):
-                product = Product(**p_data)
+            for item in cat_data["items"]:
+                product = Product(
+                    name=item["name"],
+                    price=item["price"],
+                    ideal_for=item["ideal"],
+                    category_id=category.id,
+                    stock=100,
+                    image_url=cat_data["image"]
+                )
                 db.session.add(product)
         
         db.session.commit()
-        print("Productos iniciales cargados con éxito.")
+        print("Base de datos recreada y productos iniciales cargados con éxito.")
 
 if __name__ == "__main__":
     seed_products()

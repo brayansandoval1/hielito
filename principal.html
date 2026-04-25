@@ -7,16 +7,27 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <link href="estilos.css" rel="stylesheet">
-    <!-- Cargar Google Platform Library -->
+    <!-- Cargar Google Platform Library - Fix CORP Error Abril 2026 -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- Cargar Stripe.js -->
     <script src="https://js.stripe.com/v3/"></script>
     <!-- Cargar Favicon -->
     <link rel="icon" type="image/x-icon" href="img/favicon.ico">
-   
+    <!-- Iconos para Apple/Móviles (Evita errores 404 en logs) -->
+    <link rel="apple-touch-icon" href="img/logo.jpeg">
+    <link rel="apple-touch-icon-precomposed" href="img/logo.jpeg">
     
 </head>
 <body>
+
+    <!-- Configuración Global de Google Sign-In (Fuera de modales para carga inmediata) -->
+    <div id="g_id_onload"
+         data-client_id="468449545679-ra6eqte2o12c84k7hm9ojg7qtqgmvbs7.apps.googleusercontent.com"
+         data-context="signin"
+         data-ux_mode="popup"
+         data-callback="handleGoogleSignIn"
+         data-auto_prompt="false">
+    </div>
 
     <nav class="navbar navbar-expand-lg custom-navbar sticky-top">
         <div class="container">
@@ -31,10 +42,17 @@
                     <li class="nav-item"><a class="nav-link" href="#inicio">Inicio</a></li>
                     <li class="nav-item"><a class="nav-link" href="#productos">Productos</a></li>
                     <li class="nav-item"><a class="nav-link" href="#mayoreo">Mayoreo</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#promociones">Promociones</a></li>
                     <li class="nav-item"><a class="nav-link" href="#nosotros">Nosotros</a></li>
                     <li class="nav-item"><a class="nav-link" href="#contacto">Contacto</a></li>
                     <li class="nav-item" id="auth-nav-item"><button class="btn btn-primary ms-lg-3" data-bs-toggle="modal" data-bs-target="#modalAuth" id="btnAuth">Iniciar Sesión</button></li>
                     <li class="nav-item"><button class="btn btn-outline-primary ms-lg-3" data-bs-toggle="modal" data-bs-target="#modalPedidos" id="btnVerPedidos">Mis Pedidos</button></li>
+                    <li class="nav-item d-none" id="cart-nav-item">
+                        <button class="btn btn-warning ms-lg-2 position-relative" data-bs-toggle="modal" data-bs-target="#modalCart" id="btnVerCarrito">
+                            🛒 Carrito
+                            <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -55,70 +73,151 @@
     <main id="productos">
         <div class="container">
             <h2 class="seccion-titulo h1">NUESTROS PRODUCTOS</h2>
+            <div class="row g-4 justify-content-center" id="categories-container">
+                <!-- Las categorías se cargarán aquí dinámicamente desde JS -->
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Cargando frescura...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <section id="promociones" class="py-5 bg-light">
+        <div class="container">
+            <h2 class="seccion-titulo h1 text-center mb-5">PROMOCIONES EXCLUSIVAS</h2>
             
-            <div class="row g-4 justify-content-center">
-                
-                <div class="col-md-6 col-lg-3">
-                    <div class="product-card shadow-sm" data-bs-toggle="modal" data-bs-target="#modalBolsa">
-                        <div class="product-card-body">
-                            <img src="img/bolsa.jpeg" alt="Icono Bolsa de Hielo">
-                            <h3>HIELO EN BOLSA</h3>
-                            <p class="product-desc">Variedad de presentaciones para tu hogar o evento.</p>
-                            <div class="product-sizes">
-                                <span class="badge-size">1/2 kg</span>
-                                <span class="badge-size">1 Kilo</span>
-                                <span class="badge-size">2 Kilos</span>
-                                <span class="badge-size">3 Kilos</span>
-                                <span class="badge-size">5 Kilos</span>
+            <div class="row g-4">
+                <!-- Promoción 1: Temporada de Fiestas -->
+                <div class="col-lg-4">
+                    <div class="promo-card shadow-sm h-100">
+                        <div class="promo-header bg-warning text-dark p-4">
+                            <h3 class="mb-3">🎉 TEMPORADA DE FIESTAS</h3>
+                            <p class="mb-0">¡Hasta 30% de descuento!</p>
+                        </div>
+                        <div class="promo-body p-4">
+                            <h4 class="promo-title">Paquete Fiesta Perfecta</h4>
+                            <p class="promo-desc">Ideal para cumpleaños, bodas y eventos especiales.</p>
+                            <div class="promo-details">
+                                <ul class="list-unstyled">
+                                    <li><strong>2 kg de hielo en bolsa</strong> + <strong>25 vasos de hielo</strong></li>
+                                    <li>Precio regular: $150</li>
+                                    <li><span class="text-success">Precio promocional: $105</span></li>
+                                </ul>
+                            </div>
+                            <div class="promo-timer text-center mt-3">
+                                <p class="small mb-2">¡Termina en:</p>
+                                <div class="countdown" data-end="2026-05-15T23:59:59">
+                                    <span class="countdown-days">00</span>d :
+                                    <span class="countdown-hours">00</span>h :
+                                    <span class="countdown-minutes">00</span>m :
+                                    <span class="countdown-seconds">00</span>s
+                                </div>
+                            </div>
+                        </div>
+                        <div class="promo-footer p-4 bg-light">
+                            <button class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#modalBolsa">COMPRAR AHORA</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Promoción 2: Mayoreo Especial -->
+                <div class="col-lg-4">
+                    <div class="promo-card shadow-sm h-100">
+                        <div class="promo-header bg-success text-white p-4">
+                            <h3 class="mb-3">🏪 MAYOREO ESPECIAL</h3>
+                            <p class="mb-0">¡Descuentos por volumen!</p>
+                        </div>
+                        <div class="promo-body p-4">
+                            <h4 class="promo-title">Negocio Premium</h4>
+                            <p class="promo-desc">Para bares, restaurantes y hoteles.</p>
+                            <div class="promo-details">
+                                <ul class="list-unstyled">
+                                    <li><strong>10 cubetas de 20 kg cada una</strong></li>
+                                    <li>Precio regular: $900</li>
+                                    <li><span class="text-success">Precio promocional: $720</span></li>
+                                    <li><strong>Ahorra $180!</strong></li>
+                                </ul>
+                            </div>
+                            <div class="promo-timer text-center mt-3">
+                                <p class="small mb-2">¡Termina en:</p>
+                                <div class="countdown" data-end="2026-04-30T23:59:59">
+                                    <span class="countdown-days">00</span>d :
+                                    <span class="countdown-hours">00</span>h :
+                                    <span class="countdown-minutes">00</span>m :
+                                    <span class="countdown-seconds">00</span>s
+                                </div>
+                            </div>
+                        </div>
+                        <div class="promo-footer p-4 bg-light">
+                            <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#modalCubeta">COMPRAR AHORA</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Promoción 3: Temporada de Raspados -->
+                <div class="col-lg-4">
+                    <div class="promo-card shadow-sm h-100">
+                        <div class="promo-header bg-info text-white p-4">
+                            <h3 class="mb-3">🍧 TEMPORADA DE RASPADOS</h3>
+                            <p class="mb-0">¡Hielo perfecto para el verano!</p>
+                        </div>
+                        <div class="promo-body p-4">
+                            <h4 class="promo-title">Paquete Verano</h4>
+                            <p class="promo-desc">Textura perfecta para tus raspados.</p>
+                            <div class="promo-details">
+                                <ul class="list-unstyled">
+                                    <li><strong>20 kg de hielo triturado</strong></li>
+                                    <li>Precio regular: $500</li>
+                                    <li><span class="text-success">Precio promocional: $400</span></li>
+                                    <li><strong>20% de descuento!</strong></li>
+                                </ul>
+                            </div>
+                            <div class="promo-timer text-center mt-3">
+                                <p class="small mb-2">¡Termina en:</p>
+                                <div class="countdown" data-end="2026-06-30T23:59:59">
+                                    <span class="countdown-days">00</span>d :
+                                    <span class="countdown-hours">00</span>h :
+                                    <span class="countdown-minutes">00</span>m :
+                                    <span class="countdown-seconds">00</span>s
+                                </div>
+                            </div>
+                        </div>
+                        <div class="promo-footer p-4 bg-light">
+                            <button class="btn btn-info w-100" data-bs-toggle="modal" data-bs-target="#modalTriturado">COMPRAR AHORA</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Promociones Adicionales -->
+            <div class="row g-4 mt-5">
+                <div class="col-12">
+                    <h3 class="text-center mb-4">MÁS PROMOCIONES</h3>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card promo-card-small shadow-sm">
+                                <div class="card-body">
+                                    <h5 class="card-title">🎁 REGALO SORPRESA</h5>
+                                    <p class="card-text">Lleva 3 kg de hielo y llévate un vaso térmico gratis.</p>
+                                    <small class="text-muted">Promoción válida hasta agotar existencias</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card promo-card-small shadow-sm">
+                                <div class="card-body">
+                                    <h5 class="card-title">🚚 ENVÍO GRATIS</h5>
+                                    <p class="card-text">En compras mayores a $500, el envío es completamente gratis.</p>
+                                    <small class="text-muted">Solo en CDMX y área metropolitana</small>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="col-md-6 col-lg-3">
-                    <div class="product-card shadow-sm" data-bs-toggle="modal" data-bs-target="#modalVasos">
-                        <div class="product-card-body">
-                            <img src="img/vaso.jpeg" alt="Vasos de Hielo">
-                            <h3>VASOS DE HIELO</h3>
-                            <p class="product-desc">Listos para servir en tus fiestas.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-lg-3">
-                    <div class="product-card shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTriturado">
-                        <div class="product-card-body">
-                            <img src="img/triturado.jpeg" alt="Hielo para Raspado">
-                            <h3>HIELO TRITURADO PARA RASPADO</h3>
-                            <p class="product-desc">Textura perfecta para refrescar.</p>
-                            <span class="badge-raspado">¡Perfecto para Raspados!</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-lg-3">
-                    <div class="product-card shadow-sm" data-bs-toggle="modal" data-bs-target="#modalCubeta">
-                        <div class="product-card-body">
-                            <img src="img/cubeta.jpeg" alt="Hielo por Cubeta">
-                            <h3>HIELO POR CUBETA</h3>
-                            <p class="product-desc">Para bares y restaurantes.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 col-lg-3">
-                    <div class="product-card shadow-sm" data-bs-toggle="modal" data-bs-target="#modalBloque">
-                        <div class="product-card-body">
-                            <img src="img/bloque.jpeg" alt="Hielo por Bloque">
-                            <h3>HIELO POR BLOQUE</h3>
-                            <p class="product-desc">Máxima duración para enfriar grandes volúmenes.</p>
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
-    </main>
+    </section>
 
     <section id="nosotros" class="py-5">
         <div class="container">
@@ -184,6 +283,7 @@
                     <ul>
                         <li><a href="#inicio" class="text-white text-decoration-none">Inicio</a></li>
                         <li><a href="#productos" class="text-white text-decoration-none">Productos</a></li>
+                        <li><a href="#promociones" class="text-white text-decoration-none">Promociones</a></li>
                         <li><a href="#contacto" class="text-white text-decoration-none">Contacto</a></li>
                     </ul>
                 </div>
@@ -194,97 +294,37 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="main.js"></script>
-
-    <!-- Modal para Hielo en Bolsa -->
-    <div class="modal fade" id="modalBolsa" tabindex="-1">
+    <!-- UNICO MODAL DINAMICO DE PRODUCTOS -->
+    <div class="modal fade" id="modalDynamicProducts" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">HIELO EN BOLSA</h5>
+                    <h5 class="modal-title" id="dynamic-modal-title">DETALLES DEL PRODUCTO</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
 <div class="modal-body">
                     <div class="container-fluid">
                         <div class="row">
-                            <div class="col-md-6">
-                                <img src="img/bolsa.jpeg" alt="Hielo en Bolsa" class="img-fluid rounded">
+                            <div class="col-md-5">
+                                <img id="dynamic-modal-img" src="" alt="" class="img-fluid rounded shadow-sm">
+                                <p id="dynamic-modal-desc" class="mt-3 text-muted small"></p>
                             </div>
-                            <div class="col-md-6">
-                                <h4 class="mb-3">Precios y Presentaciones</h4>
+                            <div class="col-md-7">
+                                <h5 class="mb-3 fw-bold">Opciones disponibles:</h5>
                                 <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
+                                    <table class="table table-hover align-middle">
+                                        <thead class="table-light">
                                             <tr>
                                                 <th>Presentación</th>
                                                 <th>Precio</th>
                                                 <th>Ideal para</th>
+                                                <th>Acción</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>1/2 kg</td>
-                                                <td>$25</td>
-                                                <td>Eventos pequeños</td>
-                                            </tr>
-                                            <tr>
-                                                <td>1 kg</td>
-                                                <td>$40</td>
-                                                <td>Eventos medianos</td>
-                                            </tr>
-                                            <tr>
-                                                <td>2 kg</td>
-                                                <td>$70</td>
-                                                <td>Eventos grandes</td>
-                                            </tr>
-                                            <tr>
-                                                <td>3 kg</td>
-                                                <td>$95</td>
-                                                <td>Eventos masivos</td>
-                                            </tr>
-                                            <tr>
-                                                <td>5 kg</td>
-                                                <td>$150</td>
-                                                <td>Eventos corporativos</td>
-                                            </tr>
+                                        <tbody id="dynamic-products-table">
+                                            <!-- Se llena dinámicamente -->
                                         </tbody>
                                     </table>
-                                </div>
-                                <p class="text-muted small">* Precios sujetos a cambios. Consulta promociones especiales.</p>
-
-                                <!-- Formulario de pedido -->
-                                <div class="mt-4 p-3 border rounded bg-light">
-                                    <h5 class="mb-3">Formulario de Pedido</h5>
-                                    <form id="form-bolsa">
-                                        <div class="mb-3">
-                                            <label for="telefono-bolsa" class="form-label">Teléfono</label>
-                                            <input type="tel" class="form-control" id="telefono-bolsa" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="direccion-bolsa" class="form-label">Dirección de entrega</label>
-                                            <textarea class="form-control" id="direccion-bolsa" rows="2" required></textarea>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="fecha-bolsa" class="form-label">Fecha de entrega</label>
-                                                <input type="date" class="form-control" id="fecha-bolsa" required>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="hora-bolsa" class="form-label">Hora de entrega</label>
-                                                <input type="time" class="form-control" id="hora-bolsa" required>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="cantidad-bolsa" class="form-label">Cantidad</label>
-                                            <input type="number" class="form-control" id="cantidad-bolsa" min="1" value="1" required>
-                                        </div>
-                                        <div class="mt-4 p-3 border rounded bg-light">
-                                            <label class="form-label fw-bold">Pago Seguro con Tarjeta</label>
-                                            <div id="card-element-bolsa"></div>
-                                            <div id="card-errors-bolsa" class="text-danger mt-2" role="alert"></div>
-                                        </div>
-                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -292,396 +332,80 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btn-primary btn-pagar" data-product-id="1">Pagar Ahora</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Carrito -->
+    <!-- Modal Carrito -->
+    <div class="modal fade" id="modalCart" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title fw-bold">🛒 TU CARRITO</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="cart-items-container" class="mb-3">
+                        <!-- Items dinámicos -->
+                    </div>
+                    
+                    <!-- Mensaje de tiempo de entrega dinámico -->
+                    <div id="cart-delivery-info" class="alert py-2 small mb-2 d-none"></div>
+
+                    <div class="bg-light p-3 rounded border">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Peso total estimado:</span>
+                            <span class="fw-bold text-primary" id="cart-weight">0.0 kg</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0">Total a pagar:</h4>
+                            <h4 class="mb-0 text-success fw-bold" id="cart-total">$0.00</h4>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-success btn-lg w-100 mt-3 shadow-sm" id="btn-to-checkout">
+                        PROCEDER AL PAGO <i class="bi bi-credit-card ms-2"></i>
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal para Vasos de Hielo -->
-    <div class="modal fade" id="modalVasos" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+    <!-- Modal Checkout (Unificado) -->
+    <div class="modal fade" id="modalCheckout" tabindex="-1">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">VASOS DE HIELO</h5>
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">FINALIZAR COMPRA</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="container-fluid">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <img src="img/vaso.jpeg" alt="Vasos de Hielo" class="img-fluid rounded">
-                            </div>
-                            <div class="col-md-6">
-                                <h4 class="mb-3">Precios y Presentaciones</h4>
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Cantidad</th>
-                                                <th>Precio</th>
-                                                <th>Ideal para</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>10 vasos</td>
-                                                <td>$80</td>
-                                                <td>Fiesta pequeña</td>
-                                            </tr>
-                                            <tr>
-                                                <td>25 vasos</td>
-                                                <td>$180</td>
-                                                <td>Fiesta mediana</td>
-                                            </tr>
-                                            <tr>
-                                                <td>50 vasos</td>
-                                                <td>$320</td>
-                                                <td>Fiesta grande</td>
-                                            </tr>
-                                            <tr>
-                                                <td>100 vasos</td>
-                                                <td>$550</td>
-                                                <td>Evento corporativo</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <p class="text-muted small">* Precios por unidad. Incluye vaso y hielo.</p>
-
-                                <!-- Formulario de pedido -->
-                                <div class="mt-4 p-3 border rounded bg-light">
-                                    <h5 class="mb-3">Formulario de Pedido</h5>
-                                    <form id="form-vasos">
-                                        <div class="mb-3">
-                                            <label for="telefono-vasos" class="form-label">Teléfono</label>
-                                            <input type="tel" class="form-control" id="telefono-vasos" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="direccion-vasos" class="form-label">Dirección de entrega</label>
-                                            <textarea class="form-control" id="direccion-vasos" rows="2" required></textarea>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="fecha-vasos" class="form-label">Fecha de entrega</label>
-                                                <input type="date" class="form-control" id="fecha-vasos" required>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="hora-vasos" class="form-label">Hora de entrega</label>
-                                                <input type="time" class="form-control" id="hora-vasos" required>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="cantidad-vasos" class="form-label">Cantidad</label>
-                                            <input type="number" class="form-control" id="cantidad-vasos" min="1" value="1" required>
-                                        </div>
-                                        <div class="mt-4 p-3 border rounded bg-light">
-                                            <label class="form-label fw-bold">Pago Seguro con Tarjeta</label>
-                                            <div id="card-element-vasos"></div>
-                                            <div id="card-errors-vasos" class="text-danger mt-2" role="alert"></div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
+                    <form id="checkout-form">
+                        <!-- Reutilizamos el formulario de dirección aquí una sola vez -->
+                        <div class="row mb-3">
+                            <div class="col-md-6"><label class="form-label">Teléfono</label><input type="tel" class="form-control" id="check-phone" required></div>
+                            <div class="col-md-6"><label class="form-label">CP</label><input type="text" class="form-control" id="check-cp" required></div>
                         </div>
-                    </div>
+                        <div class="mb-3"><label class="form-label">Dirección Completa</label><textarea class="form-control" id="check-address" rows="3" required></textarea></div>
+                        <div class="row mb-3">
+                            <div class="col-md-6"><label class="form-label">Fecha Entrega</label><input type="date" class="form-control" id="check-date" required></div>
+                            <div class="col-md-6"><label class="form-label">Hora Entrega</label><input type="time" class="form-control" id="check-time" required></div>
+                        </div>
+                        <div class="p-3 border rounded bg-light">
+                            <label class="form-label fw-bold">Datos de Tarjeta</label>
+                            <div id="stripe-card-element"></div>
+                            <div id="stripe-errors" class="text-danger mt-2"></div>
+                        </div>
+                    </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btn-primary btn-pagar" data-product-id="2">Pagar Ahora</button>
+                    <button type="button" class="btn btn-primary w-100 btn-lg" id="btn-confirm-payment">PAGAR AHORA</button>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Modal para Hielo Triturado para Raspado -->
-    <div class="modal fade" id="modalTriturado" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">HIELO TRITURADO PARA RASPADO</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="container-fluid">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <img src="img/triturado.jpeg" alt="Hielo Triturado para Raspado" class="img-fluid rounded">
-                            </div>
-                            <div class="col-md-6">
-                                <h4 class="mb-3">Precios y Presentaciones</h4>
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Presentación</th>
-                                                <th>Precio</th>
-                                                <th>Ideal para</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>1 kg</td>
-                                                <td>$35</td>
-                                                <td>Raspados individuales</td>
-                                            </tr>
-                                            <tr>
-                                                <td>5 kg</td>
-                                                <td>$150</td>
-                                                <td>Puesto de raspados</td>
-                                            </tr>
-                                            <tr>
-                                                <td>10 kg</td>
-                                                <td>$280</td>
-                                                <td>Evento grande</td>
-                                            </tr>
-                                            <tr>
-                                                <td>20 kg</td>
-                                                <td>$500</td>
-                                                <td>Feria o festival</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <p class="text-muted small">* Textura perfecta para raspados. Mantiene frescura por más tiempo.</p>
-
-                                <!-- Formulario de pedido -->
-                                <div class="mt-4 p-3 border rounded bg-light">
-                                    <h5 class="mb-3">Formulario de Pedido</h5>
-                                    <form id="form-triturado">
-                                        <div class="mb-3">
-                                            <label for="telefono-triturado" class="form-label">Teléfono</label>
-                                            <input type="tel" class="form-control" id="telefono-triturado" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="direccion-triturado" class="form-label">Dirección de entrega</label>
-                                            <textarea class="form-control" id="direccion-triturado" rows="2" required></textarea>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="fecha-triturado" class="form-label">Fecha de entrega</label>
-                                                <input type="date" class="form-control" id="fecha-triturado" required>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="hora-triturado" class="form-label">Hora de entrega</label>
-                                                <input type="time" class="form-control" id="hora-triturado" required>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="cantidad-triturado" class="form-label">Cantidad</label>
-                                            <input type="number" class="form-control" id="cantidad-triturado" min="1" value="1" required>
-                                        </div>
-                                        <div class="mt-4 p-3 border rounded bg-light">
-                                            <label class="form-label fw-bold">Pago Seguro con Tarjeta</label>
-                                            <div id="card-element-triturado"></div>
-                                            <div id="card-errors-triturado" class="text-danger mt-2" role="alert"></div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btn-primary btn-pagar" data-product-id="3">Pagar Ahora</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para Hielo por Cubeta -->
-    <div class="modal fade" id="modalCubeta" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">HIELO POR CUBETA</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="container-fluid">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <img src="img/cubeta.jpeg" alt="Hielo por Cubeta" class="img-fluid rounded">
-                            </div>
-                            <div class="col-md-6">
-                                <h4 class="mb-3">Precios y Presentaciones</h4>
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Cantidad</th>
-                                                <th>Precio</th>
-                                                <th>Ideal para</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>1 cubeta</td>
-                                                <td>$120</td>
-                                                <td>Bar pequeño</td>
-                                            </tr>
-                                            <tr>
-                                                <td>3 cubetas</td>
-                                                <td>$320</td>
-                                                <td>Restaurante</td>
-                                            </tr>
-                                            <tr>
-                                                <td>5 cubetas</td>
-                                                <td>$500</td>
-                                                <td>Bar grande</td>
-                                            </tr>
-                                            <tr>
-                                                <td>10 cubetas</td>
-                                                <td>$900</td>
-                                                <td>Hotel o evento</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <p class="text-muted small">* Cubetas de 20 kg cada una. Hielo de alta calidad para servicio continuo.</p>
-
-                                <!-- Formulario de pedido -->
-                                <div class="mt-4 p-3 border rounded bg-light">
-                                    <h5 class="mb-3">Formulario de Pedido</h5>
-                                    <form id="form-cubeta">
-                                        <div class="mb-3">
-                                            <label for="telefono-cubeta" class="form-label">Teléfono</label>
-                                            <input type="tel" class="form-control" id="telefono-cubeta" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="direccion-cubeta" class="form-label">Dirección de entrega</label>
-                                            <textarea class="form-control" id="direccion-cubeta" rows="2" required></textarea>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="fecha-cubeta" class="form-label">Fecha de entrega</label>
-                                                <input type="date" class="form-control" id="fecha-cubeta" required>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="hora-cubeta" class="form-label">Hora de entrega</label>
-                                                <input type="time" class="form-control" id="hora-cubeta" required>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="cantidad-cubeta" class="form-label">Cantidad</label>
-                                            <input type="number" class="form-control" id="cantidad-cubeta" min="1" value="1" required>
-                                        </div>
-                                        <div class="mt-4 p-3 border rounded bg-light">
-                                            <label class="form-label fw-bold">Pago Seguro con Tarjeta</label>
-                                            <div id="card-element-cubeta"></div>
-                                            <div id="card-errors-cubeta" class="text-danger mt-2" role="alert"></div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btn-primary btn-pagar" data-product-id="4">Pagar Ahora</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para Hielo por Bloque -->
-    <div class="modal fade" id="modalBloque" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">HIELO POR BLOQUE</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="container-fluid">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <img src="img/bloque.jpeg" alt="Hielo por Bloque" class="img-fluid rounded">
-                            </div>
-                            <div class="col-md-6">
-                                <h4 class="mb-3">Precios y Presentaciones</h4>
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Peso</th>
-                                                <th>Precio</th>
-                                                <th>Ideal para</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>10 kg</td>
-                                                <td>$180</td>
-                                                <td>Enfriar pescados</td>
-                                            </tr>
-                                            <tr>
-                                                <td>20 kg</td>
-                                                <td>$320</td>
-                                                <td>Eventos grandes</td>
-                                            </tr>
-                                            <tr>
-                                                <td>50 kg</td>
-                                                <td>$750</td>
-                                            <td>Embarcaciones</td>
-                                            </tr>
-                                            <tr>
-                                                <td>100 kg</td>
-                                                <td>$1,400</td>
-                                                <td>Industria</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <p class="text-muted small">* Máxima duración. Ideal para enfriamiento prolongado.</p>
-
-                                <!-- Formulario de pedido -->
-                                <div class="mt-4 p-3 border rounded bg-light">
-                                    <h5 class="mb-3">Formulario de Pedido</h5>
-                                    <form id="form-bloque">
-                                        <div class="mb-3">
-                                            <label for="telefono-bloque" class="form-label">Teléfono</label>
-                                            <input type="tel" class="form-control" id="telefono-bloque" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="direccion-bloque" class="form-label">Dirección de entrega</label>
-                                            <textarea class="form-control" id="direccion-bloque" rows="2" required></textarea>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="fecha-bloque" class="form-label">Fecha de entrega</label>
-                                                <input type="date" class="form-control" id="fecha-bloque" required>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="hora-bloque" class="form-label">Hora de entrega</label>
-                                                <input type="time" class="form-control" id="hora-bloque" required>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="cantidad-bloque" class="form-label">Cantidad</label>
-                                            <input type="number" class="form-control" id="cantidad-bloque" min="1" value="1" required>
-                                        </div>
-                                        <div class="mt-4 p-3 border rounded bg-light">
-                                            <label class="form-label fw-bold">Pago Seguro con Tarjeta</label>
-                                            <div id="card-element-bloque"></div>
-                                            <div id="card-errors-bloque" class="text-danger mt-2" role="alert"></div>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btn-primary btn-pagar" data-product-id="5">Pagar Ahora</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal para Ver Pedidos -->
     <div class="modal fade" id="modalPedidos" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -739,14 +463,6 @@
                                 <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">INICIAR SESIÓN</button>
                                 <div class="text-center mt-3">
                                     <p class="text-muted">o</p>
-                                    <!-- Configuración de Google Sign-In -->
-                                    <div id="g_id_onload"
-                                         data-client_id="468449545679-ra6eqte2o12c84k7hm9ojg7qtqgmvbs7.apps.googleusercontent.com"
-                                         data-context="signin"
-                                         data-ux_mode="popup"
-                                         data-callback="handleGoogleSignIn"
-                                         data-auto_prompt="false">
-                                    </div>
                                     <!-- Botón visual de Google -->
                                     <div class="g_id_signin"
                                          data-type="standard"
@@ -781,4 +497,16 @@
             </div>
         </div>
     </div>
+
+    <!-- Botón Flotante de WhatsApp -->
+    <a href="https://wa.me/525512345678?text=Hola!%20Tengo%20una%20pregunta%20sobre%20Hielito%20Mexicano." 
+       class="whatsapp-float" 
+       target="_blank" 
+       title="Chatea con nosotros por WhatsApp">
+        <img src="img/whatsapp.png" alt="WhatsApp" style="width: 60px; height: 60px;">
+    </a>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="main.js"></script>
+</body>
 </html>
