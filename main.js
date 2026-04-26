@@ -245,48 +245,55 @@ async function loadPromotions() {
                 `<li><strong>${item.quantity} ${item.product_name}</strong></li>`
             ).join('');
 
+            const ahorro = Math.round((1 - promo.promo_price / promo.original_price) * 100);
+
             return `
                 <div class="col-lg-4">
-                    <div class="promo-card shadow-sm h-100 border-0 overflow-hidden">
-                        <div class="promo-header bg-${promo.color_scheme} ${promo.color_scheme === 'warning' ? 'text-dark' : 'text-white'} p-4">
-                            <h3 class="mb-2 text-uppercase fs-5">${promo.header_title}</h3>
-                            <p class="mb-0 small opacity-75">${promo.header_subtitle || ''}</p>
+                    <div class="promo-card shadow-sm h-100 border-0 overflow-hidden" style="min-height: 580px; max-height: 580px;">
+                        <!-- 1. TITULO PRINCIPAL (MAYOR CONTRASTE) -->
+                        <div class="bg-${promo.color_scheme} ${promo.color_scheme === 'warning' ? 'text-dark' : 'text-white'} p-3 text-center">
+                            <h3 class="mb-0 text-uppercase fs-5 fw-bold">${promo.promo_name}</h3>
                         </div>
+                        
                         <div class="promo-body p-4 bg-white d-flex flex-column h-100">
-                            <h4 class="promo-title fw-bold text-primary mb-2">${promo.promo_name}</h4>
+                            <!-- 2. DESCRIPCION -->
+                            <p class="promo-desc mb-3 fs-6">${promo.description || ''}</p>
                             
-                            <!-- Descripción con mayor visibilidad -->
-                            <p class="promo-desc text-dark mb-3" style="font-size: 0.9rem; line-height: 1.4;">
-                                ${promo.description || ''}
-                            </p>
-
-                            <!-- Cronómetro de Urgencia -->
-                            <div class="promo-timer text-center bg-light rounded p-2 mb-3 border">
-                                <p class="small mb-1 fw-semibold text-uppercase text-muted" style="font-size: 0.6rem;">¡La oferta termina en!</p>
-                                <div class="countdown d-flex justify-content-center gap-1" data-end="${promo.expiration_date}">
-                                    <div class="text-center"><span class="countdown-days d-block fw-bold">00</span><small class="text-uppercase" style="font-size: 0.5rem;">Días</small></div>
-                                    <div class="fw-bold">:</div>
-                                    <div class="text-center"><span class="countdown-hours d-block fw-bold">00</span><small class="text-uppercase" style="font-size: 0.5rem;">Hrs</small></div>
-                                    <div class="fw-bold">:</div>
-                                    <div class="text-center"><span class="countdown-minutes d-block fw-bold">00</span><small class="text-uppercase" style="font-size: 0.5rem;">Min</small></div>
-                                    <div class="fw-bold">:</div>
-                                    <div class="text-center"><span class="countdown-seconds d-block fw-bold">00</span><small class="text-uppercase" style="font-size: 0.5rem;">Seg</small></div>
-                                </div>
-                            </div>
-
-                            <button class="btn btn-${promo.color_scheme} w-100 fw-bold py-3 mb-4 shadow-sm" onclick="addPromotionToCart(${promo.id})">
-                                COMPRAR AHORA <i class="bi bi-bag-check-fill ms-2"></i>
-                            </button>
-
-                            <!-- Detalles del paquete (Items y Precios) -->
-                            <div class="promo-details mt-auto pt-3 border-top">
-                                <h6 class="fw-bold mb-2 small text-uppercase" style="font-size: 0.7rem;">¿Qué incluye este paquete?</h6>
-                                <ul class="list-unstyled mb-3 border-start border-3 border-warning ps-3" style="font-size: 0.85rem;">
+                            <!-- 3. CONTENIDO DEL PAQUETE -->
+                            <div class="border rounded p-3 mb-3 bg-light">
+                                <h6 class="fw-bold text-primary mb-2">📦 Incluye:</h6>
+                                <ul class="list-unstyled mb-0 small">
                                     ${itemsHtml}
                                 </ul>
+                            </div>
+                            
+                            <!-- 4. PRECIOS Y AHORRO -->
+                            <div class="border rounded p-3 mb-3">
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="text-muted text-decoration-line-through small">Reg: $${promo.original_price.toFixed(2)}</span>
-                                    <span class="fs-4 text-success fw-bold">PROMO: $${promo.promo_price.toFixed(2)}</span>
+                                    <div>
+                                        <span class="text-muted text-decoration-line-through">${promo.original_price.toFixed(2)}</span>
+                                        <h4 class="mb-0 fw-bold text-success">${promo.promo_price.toFixed(2)}</h4>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-success fs-6">-${ahorro}%</span>
+                                        <p class="mb-0 small text-muted">AHORRO</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 5. BOTON ACCION SUBIDO ARRIBA -->
+                            <button class="btn btn-${promo.color_scheme} w-100 fw-bold py-3 shadow-sm mb-2" onclick="addPromotionToCart(${promo.id})">
+                                🛒 ADQUIRIR PROMOCIÓN
+                            </button>
+
+                            <!-- 6. CRONOMETRO PEGADO INMEDIATAMENTE ABAJO -->
+                            <div class="text-center bg-light rounded p-1 mt-0">
+                                <p class="small mb-1 text-uppercase text-muted" style="font-size: 0.7rem;">⏰ Termina en:</p>
+                                <div class="countdown d-flex justify-content-center gap-2" data-end="${promo.expiration_date}">
+                                    <span class="countdown-days fw-bold text-dark fs-5">00</span><small class="text-uppercase text-muted pt-1">d</small>
+                                    <span class="countdown-hours fw-bold text-dark fs-5">00</span><small class="text-uppercase text-muted pt-1">h</small>
+                                    <span class="countdown-minutes fw-bold text-dark fs-5">00</span><small class="text-uppercase text-muted pt-1">m</small>
+                                    <span class="countdown-seconds fw-bold text-dark fs-5">00</span><small class="text-uppercase text-muted pt-1">s</small>
                                 </div>
                             </div>
                         </div>
@@ -302,38 +309,58 @@ async function loadPromotions() {
 }
 
 window.addPromotionToCart = (id) => {
-    const promo = window.allPromotions.find(p => p.id == id);
-    if (!promo) return;
+    // ✅ VALIDACION COMPLETA ANTES DE HACER NADA
+    const promo = window.allPromotions ? window.allPromotions.find(p => p.id == id) : null;
+    
+    if (!promo) {
+        console.error("Promocion no encontrada ID:", id);
+        return alert("Error: Promoción no valida o ya expiró. Actualiza la pagina.");
+    }
 
     const token = localStorage.getItem('token');
     if (!token) return alert("Por favor, inicia sesión para adquirir esta promoción.");
 
+    // ✅ Calcular peso EXACTO desde los items
     let promoWeight = 0;
-    promo.items.forEach(item => {
-        promoWeight += parseWeight(item.product_name) * item.quantity;
-    });
-
-    const existingItem = cart.find(item => item.promo_id === id);
-    if (existingItem) {
-        existingItem.quantity += 1;
-    } else {
-        cart.push({ 
-            promo_id: id, 
-            product_id: null, // Para que el backend sepa que es una promo
-            name: `🎁 ${promo.promo_name}`, 
-            price: promo.promo_price, 
-            quantity: 1, 
-            weight: promoWeight,
-            is_promo: true 
+    if(promo.items && promo.items.length > 0) {
+        promo.items.forEach(item => {
+            promoWeight += parseWeight(item.product_name) * item.quantity;
         });
     }
 
+    // ✅ VALIDAR QUE EXISTA EN EL CARRITO CORRECTAMENTE
+    const existingItemIndex = cart.findIndex(item => item.promo_id === id && item.is_promo === true);
+    
+    if (existingItemIndex !== -1) {
+        // ✅ SI EXISTE: SOLO ACTUALIZAR CANTIDAD NUNCA MODIFICAR OTROS CAMPOS
+        cart[existingItemIndex].quantity += 1;
+    } else {
+        // ✅ SI NO EXISTE: AGREGAR CON TODOS LOS CAMPOS COMPLETOS Y VALIDOS
+        cart.push({ 
+            promo_id: parseInt(id),
+            product_id: null,
+            name: `🎁 ${promo.promo_name.trim()}`,
+            price: parseFloat(promo.promo_price),
+            original_price: parseFloat(promo.original_price),
+            quantity: 1,
+            weight: parseFloat(promoWeight),
+            is_promo: true,
+            items: [...promo.items], // ✅ GUARDAR TAMBIEN LOS ITEMS INDIVIDUALES
+            promo_expiration: promo.expiration_date
+        });
+    }
+
+    // ✅ GUARDAR Y RENDERIZAR
     saveCart();
     renderCart();
-    alert(`¡Promoción "${promo.promo_name}" añadida al carrito!`);
     
-    const cartModalEl = document.getElementById('modalCart');
-    bootstrap.Offcanvas.getOrCreateInstance(cartModalEl).show();
+    alert(`✅ Promoción añadida: ${promo.promo_name}\n\nTotal items en carrito: ${cart.reduce((a,i) => a+i.quantity, 0)}`);
+    
+    // ✅ ABRIR CARRITO
+    setTimeout(() => {
+        const cartModalEl = document.getElementById('modalCart');
+        bootstrap.Offcanvas.getOrCreateInstance(cartModalEl).show();
+    }, 200);
 };
 
 window.openCategory = (id) => {
