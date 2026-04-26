@@ -231,6 +231,8 @@ async function loadPromotions() {
         if (!res.ok) throw new Error("Error cargando promociones");
         const promos = await res.json();
         const container = document.getElementById('promotions-container');
+        console.log("Contenedor promociones encontrado:", container);
+        console.log("Promociones recibidas del servidor:", promos.length);
         if (!container) return;
 
         if (promos.length === 0) {
@@ -251,17 +253,16 @@ async function loadPromotions() {
                             <p class="mb-0 small opacity-75">${promo.header_subtitle || ''}</p>
                         </div>
                         <div class="promo-body p-4 bg-white d-flex flex-column h-100">
-                            <h4 class="promo-title fw-bold text-primary mb-3">${promo.promo_name}</h4>
-                            <p class="promo-desc text-muted small mb-4">${promo.description || ''}</p>
-                            <div class="promo-details mb-4">
-                                <ul class="list-unstyled mb-0 border-start border-3 border-warning ps-3">
-                                    ${itemsHtml}
-                                    <li class="mt-2 text-muted text-decoration-line-through small">Precio regular: $${promo.original_price.toFixed(2)}</li>
-                                    <li class="fs-5 text-success fw-bold">Precio promo: $${promo.promo_price.toFixed(2)}</li>
-                                </ul>
-                            </div>
-                            <div class="promo-timer text-center bg-light rounded p-2 mt-auto">
-                                <p class="small mb-1 fw-semibold text-uppercase" style="font-size: 0.7rem;">¡Termina en!</p>
+                            <h4 class="promo-title fw-bold text-primary mb-2">${promo.promo_name}</h4>
+                            
+                            <!-- Descripción con mayor visibilidad -->
+                            <p class="promo-desc text-dark mb-3" style="font-size: 0.9rem; line-height: 1.4;">
+                                ${promo.description || ''}
+                            </p>
+
+                            <!-- Cronómetro de Urgencia -->
+                            <div class="promo-timer text-center bg-light rounded p-2 mb-3 border">
+                                <p class="small mb-1 fw-semibold text-uppercase text-muted" style="font-size: 0.6rem;">¡La oferta termina en!</p>
                                 <div class="countdown d-flex justify-content-center gap-1" data-end="${promo.expiration_date}">
                                     <div class="text-center"><span class="countdown-days d-block fw-bold">00</span><small class="text-uppercase" style="font-size: 0.5rem;">Días</small></div>
                                     <div class="fw-bold">:</div>
@@ -272,11 +273,22 @@ async function loadPromotions() {
                                     <div class="text-center"><span class="countdown-seconds d-block fw-bold">00</span><small class="text-uppercase" style="font-size: 0.5rem;">Seg</small></div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="promo-footer p-4 bg-light border-top">
-                            <button class="btn btn-${promo.color_scheme} w-100 fw-bold py-2 shadow-sm" onclick="addPromotionToCart(${promo.id})">
+
+                            <button class="btn btn-${promo.color_scheme} w-100 fw-bold py-3 mb-4 shadow-sm" onclick="addPromotionToCart(${promo.id})">
                                 COMPRAR AHORA <i class="bi bi-bag-check-fill ms-2"></i>
                             </button>
+
+                            <!-- Detalles del paquete (Items y Precios) -->
+                            <div class="promo-details mt-auto pt-3 border-top">
+                                <h6 class="fw-bold mb-2 small text-uppercase" style="font-size: 0.7rem;">¿Qué incluye este paquete?</h6>
+                                <ul class="list-unstyled mb-3 border-start border-3 border-warning ps-3" style="font-size: 0.85rem;">
+                                    ${itemsHtml}
+                                </ul>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted text-decoration-line-through small">Reg: $${promo.original_price.toFixed(2)}</span>
+                                    <span class="fs-4 text-success fw-bold">PROMO: $${promo.promo_price.toFixed(2)}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>`;

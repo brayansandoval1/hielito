@@ -177,9 +177,9 @@ promotions = Blueprint('promotions', __name__)
 
 @promotions.route('/', methods=['GET'])
 def get_promotions():
-    # Usamos la fecha actual para comparar con la expiración en la DB
+    # Obtenemos la fecha actual para mostrar solo promos vigentes
     now = datetime.now()
-    active_promos = Promotion.query.filter(Promotion.expiration_date > now).all()
+    active_promos = Promotion.query.filter(Promotion.expiration_date >= now).all()
     return jsonify([p.to_dict() for p in active_promos]), 200
 
 # Blueprint de productos

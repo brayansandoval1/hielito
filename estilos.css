@@ -253,3 +253,40 @@
     justify-content: center;
     align-items: center;
 }
+
+/* --- Tarjetas de Promociones --- */
+.promo-card {
+    border-radius: 20px;
+    background: white;
+    border: 1px solid rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.promo-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1) !important;
+}
+
+.promo-header h3 {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.promo-title {
+    color: var(--azul-fuerte-textos);
+}
+
+.countdown span {
+    background: #f8f9fa;
+    padding: 5px 8px;
+    border-radius: 6px;
+    min-width: 35px;
+    display: inline-block;
+}
+
+        .promo-card .btn {
+    border-radius: 12px;
+    transition: all 0.2s;
+}
