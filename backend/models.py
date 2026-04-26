@@ -113,3 +113,48 @@ class Payment(db.Model):
             "status": self.status,
             "transaction_id": self.transaction_id
         }
+
+class Promotion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    header_title = db.Column(db.String(100), nullable=False)    # ej: 🎉 TEMPORADA DE FIESTAS
+    header_subtitle = db.Column(db.String(100))                 # ej: ¡Hasta 30% de descuento!
+    promo_name = db.Column(db.String(100), nullable=False)      # ej: Paquete Fiesta Perfecta
+    description = db.Column(db.Text)                            # ej: Ideal para cumpleaños...
+    original_price = db.Column(db.Float, nullable=False)        # ej: 150
+    promo_price = db.Column(db.Float, nullable=False)           # ej: 105
+    expiration_date = db.Column(db.DateTime, nullable=False)    # ej: 2026-05-15
+    color_scheme = db.Column(db.String(20), default='warning')  # 'warning', 'success', 'info'
+
+    # Relación con los items que componen la promo
+    items = db.relationship('PromotionItem', backref='promotion', lazy=True, cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'header_title': self.header_title,
+            'header_subtitle': self.header_subtitle,
+            'promo_name': self.promo_name,
+            'description': self.description,
+            'original_price': self.original_price,
+            'promo_price': self.promo_price,
+            'expiration_date': self.expiration_date.isoformat(),
+            'color_scheme': self.color_scheme,
+            'items': [item.to_dict() for item in self.items]
+        }
+
+class PromotionItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    promotion_id = db.Column(db.Integer, db.ForeignKey('promotion.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    quantity = db.Column(db.Integer, default=1)
+    
+    # Relación para obtener detalles del producto fácilmente
+    product = db.relationship('Product')
+
+    def to_dict(self):
+        return {
+            'product_id': self.product_id,
+            'product_name': self.product.name if self.product else "Producto desconocido",
+            'quantity': self.quantity
+        }
+    

@@ -74,9 +74,10 @@ def create_app():
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         return response
 
-    from backend.routes import auth, products, payments, orders, main
+    from backend.routes import auth, products, payments, orders, main, promotions
     app.register_blueprint(auth, url_prefix='/api/auth')
     app.register_blueprint(products, url_prefix='/api/products')
+    app.register_blueprint(promotions, url_prefix='/api/promotions')
     app.register_blueprint(payments, url_prefix='/api/payments')
     app.register_blueprint(orders, url_prefix='/api/orders')
     app.register_blueprint(main, url_prefix='/')

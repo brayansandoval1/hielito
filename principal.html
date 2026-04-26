@@ -49,7 +49,7 @@
                     <li class="nav-item" id="auth-nav-item"><button class="btn btn-primary ms-lg-3" data-bs-toggle="modal" data-bs-target="#modalAuth" id="btnAuth">Iniciar Sesión</button></li>
                     <li class="nav-item"><button class="btn btn-outline-primary ms-lg-3" data-bs-toggle="modal" data-bs-target="#modalPedidos" id="btnVerPedidos">Mis Pedidos</button></li>
                     <li class="nav-item d-none" id="cart-nav-item">
-                        <button class="btn btn-warning ms-lg-2 position-relative d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#modalCart" id="btnVerCarrito">
+                        <button class="btn btn-warning ms-lg-2 position-relative d-flex align-items-center" data-bs-toggle="offcanvas" data-bs-target="#modalCart" id="btnVerCarrito">
                             <i class="bi bi-cart3 me-2"></i> Carrito
                             <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
                         </button>
@@ -88,133 +88,11 @@
         <div class="container">
             <h2 class="seccion-titulo h1 text-center mb-5">PROMOCIONES EXCLUSIVAS</h2>
             
-            <div class="row g-4">
-                <!-- Promoción 1: Temporada de Fiestas -->
-                <div class="col-lg-4">
-                    <div class="promo-card shadow-sm h-100">
-                        <div class="promo-header bg-warning text-dark p-4">
-                            <h3 class="mb-3">🎉 TEMPORADA DE FIESTAS</h3>
-                            <p class="mb-0">¡Hasta 30% de descuento!</p>
-                        </div>
-                        <div class="promo-body p-4">
-                            <h4 class="promo-title">Paquete Fiesta Perfecta</h4>
-                            <p class="promo-desc">Ideal para cumpleaños, bodas y eventos especiales.</p>
-                            <div class="promo-details">
-                                <ul class="list-unstyled">
-                                    <li><strong>2 kg de hielo en bolsa</strong> + <strong>25 vasos de hielo</strong></li>
-                                    <li>Precio regular: $150</li>
-                                    <li><span class="text-success">Precio promocional: $105</span></li>
-                                </ul>
-                            </div>
-                            <div class="promo-timer text-center mt-3">
-                                <p class="small mb-2">¡Termina en:</p>
-                                <div class="countdown" data-end="2026-05-15T23:59:59">
-                                    <span class="countdown-days">00</span>d :
-                                    <span class="countdown-hours">00</span>h :
-                                    <span class="countdown-minutes">00</span>m :
-                                    <span class="countdown-seconds">00</span>s
-                                </div>
-                            </div>
-                        </div>
-                        <div class="promo-footer p-4 bg-light">
-                            <button class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#modalBolsa">COMPRAR AHORA</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Promoción 2: Mayoreo Especial -->
-                <div class="col-lg-4">
-                    <div class="promo-card shadow-sm h-100">
-                        <div class="promo-header bg-success text-white p-4">
-                            <h3 class="mb-3">🏪 MAYOREO ESPECIAL</h3>
-                            <p class="mb-0">¡Descuentos por volumen!</p>
-                        </div>
-                        <div class="promo-body p-4">
-                            <h4 class="promo-title">Negocio Premium</h4>
-                            <p class="promo-desc">Para bares, restaurantes y hoteles.</p>
-                            <div class="promo-details">
-                                <ul class="list-unstyled">
-                                    <li><strong>10 cubetas de 20 kg cada una</strong></li>
-                                    <li>Precio regular: $900</li>
-                                    <li><span class="text-success">Precio promocional: $720</span></li>
-                                    <li><strong>Ahorra $180!</strong></li>
-                                </ul>
-                            </div>
-                            <div class="promo-timer text-center mt-3">
-                                <p class="small mb-2">¡Termina en:</p>
-                                <div class="countdown" data-end="2026-04-30T23:59:59">
-                                    <span class="countdown-days">00</span>d :
-                                    <span class="countdown-hours">00</span>h :
-                                    <span class="countdown-minutes">00</span>m :
-                                    <span class="countdown-seconds">00</span>s
-                                </div>
-                            </div>
-                        </div>
-                        <div class="promo-footer p-4 bg-light">
-                            <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#modalCubeta">COMPRAR AHORA</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Promoción 3: Temporada de Raspados -->
-                <div class="col-lg-4">
-                    <div class="promo-card shadow-sm h-100">
-                        <div class="promo-header bg-info text-white p-4">
-                            <h3 class="mb-3">🍧 TEMPORADA DE RASPADOS</h3>
-                            <p class="mb-0">¡Hielo perfecto para el verano!</p>
-                        </div>
-                        <div class="promo-body p-4">
-                            <h4 class="promo-title">Paquete Verano</h4>
-                            <p class="promo-desc">Textura perfecta para tus raspados.</p>
-                            <div class="promo-details">
-                                <ul class="list-unstyled">
-                                    <li><strong>20 kg de hielo triturado</strong></li>
-                                    <li>Precio regular: $500</li>
-                                    <li><span class="text-success">Precio promocional: $400</span></li>
-                                    <li><strong>20% de descuento!</strong></li>
-                                </ul>
-                            </div>
-                            <div class="promo-timer text-center mt-3">
-                                <p class="small mb-2">¡Termina en:</p>
-                                <div class="countdown" data-end="2026-06-30T23:59:59">
-                                    <span class="countdown-days">00</span>d :
-                                    <span class="countdown-hours">00</span>h :
-                                    <span class="countdown-minutes">00</span>m :
-                                    <span class="countdown-seconds">00</span>s
-                                </div>
-                            </div>
-                        </div>
-                        <div class="promo-footer p-4 bg-light">
-                            <button class="btn btn-info w-100" data-bs-toggle="modal" data-bs-target="#modalTriturado">COMPRAR AHORA</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Promociones Adicionales -->
-            <div class="row g-4 mt-5">
-                <div class="col-12">
-                    <h3 class="text-center mb-4">MÁS PROMOCIONES</h3>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="card promo-card-small shadow-sm">
-                                <div class="card-body">
-                                    <h5 class="card-title">🎁 REGALO SORPRESA</h5>
-                                    <p class="card-text">Lleva 3 kg de hielo y llévate un vaso térmico gratis.</p>
-                                    <small class="text-muted">Promoción válida hasta agotar existencias</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card promo-card-small shadow-sm">
-                                <div class="card-body">
-                                    <h5 class="card-title">🚚 ENVÍO GRATIS</h5>
-                                    <p class="card-text">En compras mayores a $500, el envío es completamente gratis.</p>
-                                    <small class="text-muted">Solo en CDMX y área metropolitana</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <div class="row g-4" id="promotions-container">
+                <!-- Las promociones se cargarán aquí dinámicamente -->
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-warning" role="status"></div>
+                    <p class="mt-2 text-muted">Buscando las mejores ofertas...</p>
                 </div>
             </div>
         </div>
@@ -340,37 +218,33 @@
     
     <!-- Modal Carrito -->
     <!-- Modal Carrito -->
-    <div class="modal fade" id="modalCart" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-warning">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-cart3 me-2"></i> TU CARRITO</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="cart-items-container" class="mb-3">
-                        <!-- Items dinámicos -->
-                    </div>
-                    
-                    <!-- Mensaje de tiempo de entrega dinámico -->
-                    <div id="cart-delivery-info" class="alert py-2 small mb-2 d-none"></div>
+    <div class="offcanvas offcanvas-end" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="modalCart" aria-labelledby="modalCartLabel">
+        <div class="offcanvas-header bg-warning">
+            <h5 class="offcanvas-title fw-bold" id="modalCartLabel"><i class="bi bi-cart3 me-2"></i> TU CARRITO</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div id="cart-items-container" class="mb-3">
+                <!-- Items dinámicos -->
+            </div>
+            
+            <!-- Mensaje de tiempo de entrega dinámico -->
+            <div id="cart-delivery-info" class="alert py-2 small mb-2 d-none"></div>
 
-                    <div class="bg-light p-3 rounded border">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">Peso total estimado:</span>
-                            <span class="fw-bold text-primary" id="cart-weight">0.0 kg</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h4 class="mb-0">Total a pagar:</h4>
-                            <h4 class="mb-0 text-success fw-bold" id="cart-total">$0.00</h4>
-                        </div>
-                    </div>
-                    
-                    <button class="btn btn-success btn-lg w-100 mt-3 shadow-sm" id="btn-to-checkout">
-                        PROCEDER AL PAGO <i class="bi bi-credit-card ms-2"></i>
-                    </button>
+            <div class="bg-light p-3 rounded border">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Peso total estimado:</span>
+                    <span class="fw-bold text-primary" id="cart-weight">0.0 kg</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Total a pagar:</h4>
+                    <h4 class="mb-0 text-success fw-bold" id="cart-total">$0.00</h4>
                 </div>
             </div>
+            
+            <button class="btn btn-success btn-lg w-100 mt-3 shadow-sm" id="btn-to-checkout">
+                PROCEDER AL PAGO <i class="bi bi-credit-card ms-2"></i>
+            </button>
         </div>
     </div>
 

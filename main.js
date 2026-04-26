@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Hielito Mexicano listo');
 
     loadDynamicStore();
+    loadPromotions();
     updateAuthUI();
     updateCartBadge();
 
@@ -107,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalPedidos) modalPedidos.addEventListener('shown.bs.modal', loadOrders);
 
     const modalCart = document.getElementById('modalCart');
-    if (modalCart) modalCart.addEventListener('shown.bs.modal', renderCart);
+    if (modalCart) modalCart.addEventListener('shown.bs.offcanvas', renderCart);
 
     const modalCheckout = document.getElementById('modalCheckout');
     if (modalCheckout) {
@@ -137,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnToCheckout) {
         btnToCheckout.addEventListener('click', () => {
             if (cart.length === 0) return alert("Tu carrito está vacío.");
-            bootstrap.Modal.getInstance(document.getElementById('modalCart')).hide();
+            bootstrap.Offcanvas.getInstance(document.getElementById('modalCart')).hide();
             new bootstrap.Modal(document.getElementById('modalCheckout')).show();
         });
     }
@@ -224,6 +225,105 @@ async function loadDynamicStore() {
     }
 }
 
+async function loadPromotions() {
+    try {
+        const res = await fetch(`${API_URL}/promotions/`);
+        if (!res.ok) throw new Error("Error cargando promociones");
+        const promos = await res.json();
+        const container = document.getElementById('promotions-container');
+        if (!container) return;
+
+        if (promos.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center text-muted"><p>No hay promociones activas en este momento.</p></div>';
+            return;
+        }
+
+        container.innerHTML = promos.map(promo => {
+            const itemsHtml = promo.items.map(item => 
+                `<li><strong>${item.quantity} ${item.product_name}</strong></li>`
+            ).join('');
+
+            return `
+                <div class="col-lg-4">
+                    <div class="promo-card shadow-sm h-100 border-0 overflow-hidden">
+                        <div class="promo-header bg-${promo.color_scheme} ${promo.color_scheme === 'warning' ? 'text-dark' : 'text-white'} p-4">
+                            <h3 class="mb-2 text-uppercase fs-5">${promo.header_title}</h3>
+                            <p class="mb-0 small opacity-75">${promo.header_subtitle || ''}</p>
+                        </div>
+                        <div class="promo-body p-4 bg-white d-flex flex-column h-100">
+                            <h4 class="promo-title fw-bold text-primary mb-3">${promo.promo_name}</h4>
+                            <p class="promo-desc text-muted small mb-4">${promo.description || ''}</p>
+                            <div class="promo-details mb-4">
+                                <ul class="list-unstyled mb-0 border-start border-3 border-warning ps-3">
+                                    ${itemsHtml}
+                                    <li class="mt-2 text-muted text-decoration-line-through small">Precio regular: $${promo.original_price.toFixed(2)}</li>
+                                    <li class="fs-5 text-success fw-bold">Precio promo: $${promo.promo_price.toFixed(2)}</li>
+                                </ul>
+                            </div>
+                            <div class="promo-timer text-center bg-light rounded p-2 mt-auto">
+                                <p class="small mb-1 fw-semibold text-uppercase" style="font-size: 0.7rem;">¡Termina en!</p>
+                                <div class="countdown d-flex justify-content-center gap-1" data-end="${promo.expiration_date}">
+                                    <div class="text-center"><span class="countdown-days d-block fw-bold">00</span><small class="text-uppercase" style="font-size: 0.5rem;">Días</small></div>
+                                    <div class="fw-bold">:</div>
+                                    <div class="text-center"><span class="countdown-hours d-block fw-bold">00</span><small class="text-uppercase" style="font-size: 0.5rem;">Hrs</small></div>
+                                    <div class="fw-bold">:</div>
+                                    <div class="text-center"><span class="countdown-minutes d-block fw-bold">00</span><small class="text-uppercase" style="font-size: 0.5rem;">Min</small></div>
+                                    <div class="fw-bold">:</div>
+                                    <div class="text-center"><span class="countdown-seconds d-block fw-bold">00</span><small class="text-uppercase" style="font-size: 0.5rem;">Seg</small></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="promo-footer p-4 bg-light border-top">
+                            <button class="btn btn-${promo.color_scheme} w-100 fw-bold py-2 shadow-sm" onclick="addPromotionToCart(${promo.id})">
+                                COMPRAR AHORA <i class="bi bi-bag-check-fill ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+
+        window.allPromotions = promos;
+        initCountdownTimers();
+    } catch (error) {
+        console.error("Error cargando promociones:", error);
+    }
+}
+
+window.addPromotionToCart = (id) => {
+    const promo = window.allPromotions.find(p => p.id == id);
+    if (!promo) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) return alert("Por favor, inicia sesión para adquirir esta promoción.");
+
+    let promoWeight = 0;
+    promo.items.forEach(item => {
+        promoWeight += parseWeight(item.product_name) * item.quantity;
+    });
+
+    const existingItem = cart.find(item => item.promo_id === id);
+    if (existingItem) {
+        existingItem.quantity += 1;
+    } else {
+        cart.push({ 
+            promo_id: id, 
+            product_id: null, // Para que el backend sepa que es una promo
+            name: `🎁 ${promo.promo_name}`, 
+            price: promo.promo_price, 
+            quantity: 1, 
+            weight: promoWeight,
+            is_promo: true 
+        });
+    }
+
+    saveCart();
+    renderCart();
+    alert(`¡Promoción "${promo.promo_name}" añadida al carrito!`);
+    
+    const cartModalEl = document.getElementById('modalCart');
+    bootstrap.Offcanvas.getOrCreateInstance(cartModalEl).show();
+};
+
 window.openCategory = (id) => {
     const cat = window.allCategories.find(c => c.id == id);
     document.getElementById('dynamic-modal-title').textContent = cat.name;
@@ -279,6 +379,7 @@ window.addToCartFromModal = (id, name, price) => {
     }
     
     saveCart();
+    renderCart();
     
     // 1. Mensaje de alerta personalizado
     alert(`¡Excelente elección! Has añadido ${qty} x ${name} a tu carrito.`);
@@ -292,8 +393,11 @@ window.addToCartFromModal = (id, name, price) => {
 
     // 3. Abrir automáticamente el modal del carrito
     const cartModalEl = document.getElementById('modalCart');
-    const cartModal = new bootstrap.Modal(cartModalEl);
-    cartModal.show();
+    const cartOffcanvas = bootstrap.Offcanvas.getOrCreateInstance(cartModalEl, {
+        scroll: true,
+        backdrop: false
+    });
+    cartOffcanvas.show();
 };
 
 function saveCart() {
@@ -339,7 +443,7 @@ function renderCart() {
 
     container.innerHTML = cart.map(item => {
         const subtotal = item.price * item.quantity;
-        const itemWeight = parseWeight(item.name) * item.quantity;
+        const itemWeight = (item.weight || parseWeight(item.name)) * item.quantity;
         
         total += subtotal;
         totalWeight += itemWeight;
@@ -356,7 +460,7 @@ function renderCart() {
                     </div>
                     <div class="text-end" style="min-width: 100px;">
                         <span class="fw-bold d-block">$${subtotal.toFixed(2)}</span>
-                        <button class="btn btn-link btn-sm text-danger p-0" onclick="removeFromCart(${item.product_id})" title="Eliminar">
+                        <button class="btn btn-link btn-sm text-danger p-0" onclick="removeFromCart(${item.promo_id || item.product_id}, ${!!item.is_promo})" title="Eliminar">
                             <small>Eliminar</small>
                         </button>
                     </div>
@@ -384,8 +488,12 @@ function renderCart() {
     }
 }
 
-window.removeFromCart = (productId) => {
-    cart = cart.filter(item => item.product_id !== productId);
+window.removeFromCart = (id, isPromo) => {
+    if (isPromo) {
+        cart = cart.filter(item => item.promo_id !== id);
+    } else {
+        cart = cart.filter(item => item.product_id !== id);
+    }
     saveCart();
     renderCart();
 };
@@ -456,7 +564,11 @@ async function processPayment(items, paymentMethodId, deliveryData) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
-            items: items.map(i => ({ product_id: i.product_id, quantity: i.quantity })),
+            items: items.map(i => ({ 
+                product_id: i.product_id || null, 
+                promo_id: i.promo_id || null,
+                quantity: i.quantity 
+            })),
             payment_method: paymentMethodId,
             ...deliveryData
         })
@@ -470,7 +582,11 @@ function initCountdownTimers() {
     
     countdownElements.forEach(element => {
         const endDate = element.getAttribute('data-end');
-        const endDateTime = new Date(endDate).getTime();
+        
+        // Reemplazamos el espacio por 'T' para asegurar compatibilidad ISO con todos los navegadores
+        // Esto es vital para que las fechas de SQLite (YYYY-MM-DD HH:MM:SS) se procesen bien
+        const dateString = endDate.includes('T') ? endDate : endDate.replace(' ', 'T');
+        const endDateTime = new Date(dateString).getTime();
         
         const updateCountdown = () => {
             const now = new Date().getTime();

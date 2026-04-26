@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_from_directory
 from backend import db, jwt
-from backend.models import User, Product, Order, Payment, Category, OrderItem
+from backend.models import User, Product, Order, Payment, Category, OrderItem, Promotion, PromotionItem
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
@@ -172,6 +172,16 @@ def google_login():
         print(f"--- ERROR EN GOOGLE LOGIN ---\n{traceback.format_exc()}")
         return jsonify({'error': 'Error interno al procesar el acceso con Google'}), 500
 
+# Blueprint de promociones
+promotions = Blueprint('promotions', __name__)
+
+@promotions.route('/', methods=['GET'])
+def get_promotions():
+    # Usamos la fecha actual para comparar con la expiración en la DB
+    now = datetime.now()
+    active_promos = Promotion.query.filter(Promotion.expiration_date > now).all()
+    return jsonify([p.to_dict() for p in active_promos]), 200
+
 # Blueprint de productos
 products = Blueprint('products', __name__)
 
@@ -211,15 +221,33 @@ def process_payment():
     total = 0
     items_to_process = []
     
-    # Validar todos los productos primero
+    # Validar productos y promociones
     for item in data['items']:
-        product = Product.query.get(item['product_id'])
-        if not product or product.stock < item['quantity']:
-            print(f"Error de stock: Producto {product.name if product else item['product_id']} - Solicitado: {item['quantity']}, Disponible: {product.stock if product else 'N/A'}")
-            return jsonify({'error': f'Stock insuficiente para {product.name if product else "producto desconocido"}'}), 400
-        
-        total += product.price * item['quantity']
-        items_to_process.append((product, item['quantity']))
+        if item.get('promo_id'):
+            # Es una promoción
+            promo = Promotion.query.get(item['promo_id'])
+            if not promo:
+                return jsonify({'error': 'Promoción no encontrada'}), 404
+            
+            total += promo.promo_price * item['quantity']
+            # Validar stock de cada item dentro de la promo
+            for pi in promo.items:
+                if pi.product.stock < (pi.quantity * item['quantity']):
+                    return jsonify({'error': f'Stock insuficiente para {pi.product.name} en la promoción'}), 400
+                items_to_process.append({
+                    'product': pi.product,
+                    'quantity': pi.quantity * item['quantity'],
+                    'price_at_moment': promo.promo_price / len(promo.items) # Precio prorrateado
+                })
+        else:
+            # Es un producto individual
+            product = Product.query.get(item['product_id'])
+            if not product or product.stock < item['quantity']:
+                print(f"Error de stock: Producto {product.name if product else item['product_id']} - Solicitado: {item['quantity']}, Disponible: {product.stock if product else 'N/A'}")
+                return jsonify({'error': f'Stock insuficiente para {product.name if product else "producto desconocido"}'}), 400
+            
+            total += product.price * item['quantity']
+            items_to_process.append({'product': product, 'quantity': item['quantity'], 'price_at_moment': product.price})
 
     order = Order(
         user_id=current_user,
@@ -233,15 +261,15 @@ def process_payment():
     db.session.add(order)
     db.session.flush()
 
-    for product, quantity in items_to_process:
+    for entry in items_to_process:
         item = OrderItem(
             order_id=order.id,
-            product_id=product.id,
-            quantity=quantity,
-            price=product.price
+            product_id=entry['product'].id,
+            quantity=entry['quantity'],
+            price=entry['price_at_moment']
         )
         db.session.add(item)
-        product.stock -= quantity
+        entry['product'].stock -= entry['quantity']
 
     # Procesar pago con Stripe
     try:
