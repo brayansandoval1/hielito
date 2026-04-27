@@ -321,6 +321,33 @@ def get_orders():
     orders = Order.query.filter_by(user_id=current_user).all()
     return jsonify([order.to_dict() for order in orders]), 200
 
+@orders.route('/admin/all', methods=['GET'])
+@jwt_required()
+def get_all_orders_admin():
+    # Nota: En un entorno real, aquí verificaríamos si el usuario es is_admin=True
+    all_orders = Order.query.order_by(Order.created_at.desc()).all()
+    return jsonify([order.to_dict() for order in all_orders]), 200
+
+@orders.route('/<int:order_id>/update', methods=['PUT'])
+@jwt_required()
+def update_order_status(order_id):
+    data = request.get_json()
+    order = Order.query.get_or_404(order_id)
+    
+    if 'status' in data:
+        order.status = data['status']
+    if 'delivery_date' in data:
+        order.delivery_date = data['delivery_date']
+    if 'delivery_time' in data:
+        order.delivery_time = data['delivery_time']
+        
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Pedido actualizado', 'order': order.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 @orders.route('/<int:order_id>', methods=['GET'])
 @jwt_required()
 def get_order(order_id):

@@ -1,10 +1,10 @@
 // Configuración básica
 const API_URL = '/api';
 // REEMPLAZA ESTO con tu Clave Pública de Stripe
-const stripe = Stripe('pk_test_51TNfxTPYbgBc47qk5E2eNmouiW953bjDBM6JTgVEsWhPnzndfBKqo8GborKL5amj5lOiv1pSSrkWRsw9EK9RWgjk00e3can8Dd'); 
+const stripe = (window.Stripe) ? Stripe('pk_test_51TNfxTPYbgBc47qk5E2eNmouiW953bjDBM6JTgVEsWhPnzndfBKqo8GborKL5amj5lOiv1pSSrkWRsw9EK9RWgjk00e3can8Dd') : null; 
 
 let elements, card;
-if (typeof stripe !== 'undefined') {
+if (stripe) {
     elements = stripe.elements();
     card = elements.create('card', { 
         style: {
@@ -107,6 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalPedidos = document.getElementById('modalPedidos');
     if (modalPedidos) modalPedidos.addEventListener('shown.bs.modal', loadOrders);
 
+    const modalAdmin = document.getElementById('modalAdminOrders');
+    if (modalAdmin) modalAdmin.addEventListener('shown.bs.modal', loadAdminOrders);
+
     const modalCart = document.getElementById('modalCart');
     if (modalCart) modalCart.addEventListener('shown.bs.offcanvas', renderCart);
 
@@ -138,8 +141,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnToCheckout) {
         btnToCheckout.addEventListener('click', () => {
             if (cart.length === 0) return alert("Tu carrito está vacío.");
-            bootstrap.Offcanvas.getInstance(document.getElementById('modalCart')).hide();
-            new bootstrap.Modal(document.getElementById('modalCheckout')).show();
+            
+            // Usamos getOrCreateInstance para asegurar que Bootstrap encuentre el componente
+            const cartModal = bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('modalCart'));
+            const checkoutModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCheckout'));
+            
+            cartModal.hide();
+            checkoutModal.show();
         });
     }
 
@@ -541,10 +549,14 @@ function updateAuthUI() {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
     const authNavItem = document.getElementById('auth-nav-item');
+    const adminNavItem = document.getElementById('admin-nav-item');
     const cartNavItem = document.getElementById('cart-nav-item');
     
     if (token && authNavItem) {
         if (cartNavItem) cartNavItem.classList.remove('d-none');
+        // Mostrar panel admin solo si es el usuario de prueba (puedes cambiar esta lógica después)
+        if (adminNavItem && username === 'usuario_prueba') adminNavItem.classList.remove('d-none');
+        
         authNavItem.innerHTML = `
             <div class="d-flex align-items-center">
                 <span class="navbar-text me-3 fw-bold" style="color: var(--azul-fuerte-textos);">Hola, ${username}</span>
@@ -560,6 +572,7 @@ function updateAuthUI() {
         });
     } else {
         if (cartNavItem) cartNavItem.classList.add('d-none');
+        if (adminNavItem) adminNavItem.classList.add('d-none');
     }
 }
 
@@ -579,21 +592,84 @@ async function loadOrders() {
         });
         const orders = await response.json();
         
-        if (orders.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center">No tienes pedidos aún.</td></tr>';
-            return;
-        }
+        tbody.innerHTML = orders.length === 0 ? '<tr><td colspan="5" class="text-center">No hay pedidos aún.</td></tr>' : 
+            orders.map(o => {
+                let statusClass = 'bg-warning text-dark';
+                if (o.status === 'Enviado') statusClass = 'bg-info text-white';
+                if (o.status === 'Entregado') statusClass = 'bg-success text-white';
 
-        tbody.innerHTML = orders.map(o => `
-            <tr>
-                <td>#${o.id} <br><span class="badge bg-info" style="font-size: 0.7rem;">${o.status}</span></td>
-                <td><small>${o.items.map(i => i.product_name).join(', ')}</small></td>
-                <td>${new Date(o.created_at).toLocaleDateString()}</td>
-                <td>${o.items.reduce((acc, item) => acc + item.quantity, 0)}</td>
-                <td class="fw-bold">$${o.total.toFixed(2)}</td>
-            </tr>`).join('') || '<tr><td colspan="5" class="text-center">No hay pedidos.</td></tr>';
+                return `
+                <tr>
+                    <td><span class="fw-bold">#${o.id}</span></td>
+                    <td><small class="text-muted">${o.items.map(i => i.product_name).join(', ')}</small></td>
+                    <td>
+                        <span class="badge ${statusClass} mb-1">${o.status}</span><br>
+                        <small class="d-block text-primary fw-bold">📅 ${o.delivery_date || 'Pendiente'}</small>
+                        <small class="d-block text-primary fw-bold">⏰ ${o.delivery_time || 'Pendiente'}</small>
+                    </td>
+                    <td>${new Date(o.created_at).toLocaleDateString()}</td>
+                    <td class="fw-bold text-end">$${o.total.toFixed(2)}</td>
+                </tr>`;
+            }).join('');
     } catch (error) {
         tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error al cargar pedidos. Asegúrate de estar logueado.</td></tr>';
+    }
+}
+
+async function loadAdminOrders() {
+    const tbody = document.getElementById('tabla-admin-orders-body');
+    const token = localStorage.getItem('token');
+    try {
+        const response = await fetch(`${API_URL}/orders/admin/all`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const orders = await response.json();
+        tbody.innerHTML = orders.map(o => `
+            <tr>
+                <td class="fw-bold">#${o.id}</td>
+                <td><strong>${o.username || 'Cliente'}</strong><br><small>${o.phone || 'N/A'}</small></td>
+                <td>
+                    <small class="d-block mb-1">📍 ${o.address}</small>
+                    <small class="text-muted">${o.items.map(i => `${i.quantity}x ${i.product_name}`).join(', ')}</small>
+                </td>
+                <td>
+                    <select class="form-select form-select-sm" id="status-${o.id}">
+                        <option value="En proceso" ${o.status === 'En proceso' ? 'selected' : ''}>En proceso</option>
+                        <option value="Enviado" ${o.status === 'Enviado' ? 'selected' : ''}>Enviado</option>
+                        <option value="Entregado" ${o.status === 'Entregado' ? 'selected' : ''}>Entregado</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="date" class="form-control form-control-sm mb-1" id="date-${o.id}" value="${o.delivery_date || ''}">
+                    <input type="time" class="form-control form-control-sm" id="time-${o.id}" value="${o.delivery_time || ''}">
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-success w-100" onclick="updateOrderStatus(${o.id})">Guardar</button>
+                </td>
+            </tr>`).join('');
+    } catch (error) {
+        console.error("Error cargando panel de administración:", error);
+    }
+}
+
+window.updateOrderStatus = async (id) => {
+    const status = document.getElementById(`status-${id}`).value;
+    const delivery_date = document.getElementById(`date-${id}`).value;
+    const delivery_time = document.getElementById(`time-${id}`).value;
+    const token = localStorage.getItem('token');
+
+    try {
+        const res = await fetch(`${API_URL}/orders/${id}/update`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ status, delivery_date, delivery_time })
+        });
+        if (res.ok) {
+            alert("¡Pedido #" + id + " actualizado con éxito!");
+            loadAdminOrders();
+        }
+    } catch (error) {
+        alert("Error al actualizar el pedido.");
     }
 }
 

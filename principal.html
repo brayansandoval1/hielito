@@ -47,6 +47,7 @@
                     <li class="nav-item"><a class="nav-link" href="#nosotros">Nosotros</a></li>
                     <li class="nav-item"><a class="nav-link" href="#contacto">Contacto</a></li>
                     <li class="nav-item" id="auth-nav-item"><button class="btn btn-primary ms-lg-3" data-bs-toggle="modal" data-bs-target="#modalAuth" id="btnAuth">Iniciar Sesión</button></li>
+                    <li class="nav-item d-none" id="admin-nav-item"><button class="btn btn-danger ms-lg-3" data-bs-toggle="modal" data-bs-target="#modalAdminOrders">Panel Admin</button></li>
                     <li class="nav-item"><button class="btn btn-outline-primary ms-lg-3" data-bs-toggle="modal" data-bs-target="#modalPedidos" id="btnVerPedidos">Mis Pedidos</button></li>
                     <li class="nav-item d-none" id="cart-nav-item">
                         <button class="btn btn-warning ms-lg-2 position-relative d-flex align-items-center" data-bs-toggle="offcanvas" data-bs-target="#modalCart" id="btnVerCarrito">
@@ -295,14 +296,45 @@
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>Producto</th>
+                                    <th>Productos</th>
+                                    <th>Estatus y Entrega</th>
                                     <th>Fecha</th>
-                                    <th>Cantidad</th>
-                                    <th>Total</th>
+                                    <th class="text-end">Total</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-pedidos-body">
                                 <!-- Los pedidos se cargarán aquí con JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Admin (Gestión de Pedidos) -->
+    <div class="modal fade" id="modalAdminOrders" tabindex="-1">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">GESTIÓN DE PEDIDOS (ADMIN)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle bg-white shadow-sm">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente / Tel</th>
+                                    <th>Detalles y Dirección</th>
+                                    <th>Estatus Actual</th>
+                                    <th>Programar Entrega</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-admin-orders-body">
+                                <!-- Se llena con JS -->
                             </tbody>
                         </table>
                     </div>
