@@ -258,22 +258,37 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="checkout-form">
-                        <!-- Reutilizamos el formulario de dirección aquí una sola vez -->
-                        <div class="row mb-3">
-                            <div class="col-md-6"><label class="form-label">Teléfono</label><input type="tel" class="form-control" id="check-phone" required></div>
-                            <div class="col-md-6"><label class="form-label">CP</label><input type="text" class="form-control" id="check-cp" required></div>
+                    <div id="checkout-delivery-msg" class="alert py-3 mb-4 shadow-sm border-0">
+                        <!-- Se llena con JS según el peso -->
+                    </div>
+                    
+                    <form id="checkout-form" class="px-2">
+                        <h6 class="text-primary fw-bold mb-3"><i class="bi bi-person-lines-fill me-2"></i>Información de Contacto</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-7">
+                                <label class="form-label small fw-semibold text-muted">Teléfono de contacto</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white"><i class="bi bi-telephone"></i></span>
+                                    <input type="tel" class="form-control" id="check-phone" placeholder="Ej: 5512345678" required>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small fw-semibold text-muted">Código Postal</label>
+                                <input type="text" class="form-control" id="check-cp" placeholder="00000" required>
+                            </div>
                         </div>
-                        <div class="mb-3"><label class="form-label">Dirección Completa</label><textarea class="form-control" id="check-address" rows="3" required></textarea></div>
-                        <div class="row mb-3">
-                            <div class="col-md-6"><label class="form-label">Fecha Entrega</label><input type="date" class="form-control" id="check-date" required></div>
-                            <div class="col-md-6"><label class="form-label">Hora Entrega</label><input type="time" class="form-control" id="check-time" required></div>
+
+                        <h6 class="text-primary fw-bold mb-3"><i class="bi bi-geo-alt-fill me-2"></i>Dirección de Entrega</h6>
+                        <div class="mb-4">
+                            <textarea class="form-control" id="check-address" rows="2" placeholder="Calle, número, colonia y referencias adicionales..." required></textarea>
                         </div>
-                        <div class="p-3 border rounded bg-light">
-                            <label class="form-label fw-bold">Datos de Tarjeta</label>
-                            <div id="stripe-card-element"></div>
-                            <div id="stripe-errors" class="text-danger mt-2"></div>
+
+                        <h6 class="text-primary fw-bold mb-3"><i class="bi bi-credit-card-fill me-2"></i>Método de Pago Seguro</h6>
+                        <div class="p-3 border rounded-3 bg-light shadow-sm mb-2">
+                            <div id="stripe-card-element" class="py-2"></div>
+                            <div id="stripe-errors" class="text-danger mt-2 small" role="alert"></div>
                         </div>
+                        <p class="text-center text-muted mt-2" style="font-size: 0.75rem;"><i class="bi bi-shield-lock-fill me-1"></i> Tus pagos están protegidos con encriptación de grado bancario.</p>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -290,16 +305,16 @@
                     <h5 class="modal-title">HISTORIAL DE PEDIDOS</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-0">
                     <div id="lista-pedidos" class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Productos</th>
-                                    <th>Estatus y Entrega</th>
-                                    <th>Fecha</th>
-                                    <th class="text-end">Total</th>
+                                    <th class="ps-4">Pedido</th>
+                                    <th>Detalles de Compra</th>
+                                    <th>Seguimiento de Entrega</th>
+                                    <th>Fecha de Orden</th>
+                                    <th class="text-end pe-4">Inversión</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-pedidos-body">

@@ -141,7 +141,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnToCheckout) {
         btnToCheckout.addEventListener('click', () => {
             if (cart.length === 0) return alert("Tu carrito está vacío.");
+
+            // Calcular peso para mostrar mensaje de entrega en checkout
+            const totalWeight = cart.reduce((acc, item) => acc + ((item.weight || parseWeight(item.name)) * item.quantity), 0);
+            const checkoutMsg = document.getElementById('checkout-delivery-msg');
             
+            if (checkoutMsg) {
+                const estimate = getDeliveryEstimate(totalWeight);
+                checkoutMsg.innerHTML = `<h6 class="alert-heading fw-bold mb-1">${estimate.title}</h6><p class="mb-0 small">${estimate.text}</p>`;
+                checkoutMsg.className = `alert ${estimate.class} py-3 mb-4 shadow-sm border-0`;
+            }
+
             // Usamos getOrCreateInstance para asegurar que Bootstrap encuentre el componente
             const cartModal = bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('modalCart'));
             const checkoutModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCheckout'));
@@ -170,9 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const deliveryData = {
                 phone: document.getElementById('check-phone').value,
-                address: document.getElementById('check-address').value,
-                delivery_date: document.getElementById('check-date').value,
-                delivery_time: document.getElementById('check-time').value
+                address: document.getElementById('check-address').value
             };
 
             const result = await processPayment(cart, paymentMethod.id, deliveryData);
@@ -470,6 +478,25 @@ function parseWeight(name) {
     return match ? parseFloat(match[1]) : 0;
 }
 
+/**
+ * Calcula el compromiso de entrega basado en el peso
+ */
+function getDeliveryEstimate(weight) {
+    if (weight <= 20) {
+        return {
+            title: "⚡ ¡Entrega hoy mismo!",
+            text: "Tu pedido es ligero (hasta 20kg), por lo que lo recibirás en el transcurso de las próximas horas.",
+            class: "alert-success"
+        };
+    } else {
+        return {
+            title: "🚚 Entrega programada en 48h",
+            text: "Debido al volumen de carga, procesaremos tu envío con transporte especial en un lapso de 48 horas.",
+            class: "alert-info"
+        };
+    }
+}
+
 function renderCart() {
     const container = document.getElementById('cart-items-container');
     const totalElement = document.getElementById('cart-total');
@@ -521,14 +548,10 @@ function renderCart() {
     // Lógica de tiempo de entrega basada en el peso
     if (deliveryInfo) {
         if (totalWeight > 0) {
+            const estimate = getDeliveryEstimate(totalWeight);
             deliveryInfo.classList.remove('d-none');
-            if (totalWeight <= 20) {
-                deliveryInfo.innerHTML = '⚡ <strong>Entrega hoy:</strong> Al ser un pedido ligero (hasta 20kg), ¡te lo entregamos hoy mismo!';
-                deliveryInfo.className = 'alert alert-success py-2 small mb-2';
-            } else {
-                deliveryInfo.innerHTML = '🚚 <strong>Entrega en 48h:</strong> Por el volumen de carga (>20kg), la entrega se programará para dentro de 2 días.';
-                deliveryInfo.className = 'alert alert-info py-2 small mb-2';
-            }
+            deliveryInfo.innerHTML = `<strong>${estimate.title}</strong><br>${estimate.text}`;
+            deliveryInfo.className = `alert ${estimate.class} py-2 small mb-2`;
         } else {
             deliveryInfo.classList.add('d-none');
         }
@@ -578,41 +601,48 @@ function updateAuthUI() {
 
 async function loadOrders() {
     const tbody = document.getElementById('tabla-pedidos-body');
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center">Cargando pedidos...</td></tr>';
+    if (!tbody) return;
+    
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Cargando tu historial...</td></tr>';
 
     const token = localStorage.getItem('token');
     if (!token || token === 'null' || token === 'undefined') {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-warning">Inicia sesión para ver tu historial.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-warning">Inicia sesión para ver tu historial de pedidos.</td></tr>';
         return;
     }
 
     try {
-        const response = await fetch(`${API_URL}/orders/`, {
+        const response = await fetch(`${API_URL}/orders/?t=${new Date().getTime()}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const orders = await response.json();
         
-        tbody.innerHTML = orders.length === 0 ? '<tr><td colspan="5" class="text-center">No hay pedidos aún.</td></tr>' : 
+        tbody.innerHTML = orders.length === 0 ? '<tr><td colspan="5" class="text-center py-5 text-muted">Aún no has realizado pedidos. ¡Tu hielito te espera!</td></tr>' : 
             orders.map(o => {
-                let statusClass = 'bg-warning text-dark';
-                if (o.status === 'Enviado') statusClass = 'bg-info text-white';
-                if (o.status === 'Entregado') statusClass = 'bg-success text-white';
+                let statusHTML = '';
+                if (o.status === 'Enviado') {
+                    statusHTML = `<span class="badge rounded-pill bg-info"><i class="bi bi-truck me-1"></i> En camino</span>`;
+                } else if (o.status === 'Entregado') {
+                    statusHTML = `<span class="badge rounded-pill bg-success"><i class="bi bi-check-circle me-1"></i> Entregado</span>`;
+                } else {
+                    statusHTML = `<span class="badge rounded-pill bg-warning text-dark"><i class="bi bi-clock-history me-1"></i> En preparación</span>`;
+                }
+
+                const deliveryInfo = o.delivery_date 
+                    ? `<div class="mt-1 small fw-bold text-primary"><i class="bi bi-calendar-event me-1"></i> ${o.delivery_date} <i class="bi bi-alarm ms-1"></i> ${o.delivery_time || ''}</div>`
+                    : `<div class="mt-1 small text-muted italic">Logística en curso...</div>`;
 
                 return `
-                <tr>
-                    <td><span class="fw-bold">#${o.id}</span></td>
-                    <td><small class="text-muted">${o.items.map(i => i.product_name).join(', ')}</small></td>
-                    <td>
-                        <span class="badge ${statusClass} mb-1">${o.status}</span><br>
-                        <small class="d-block text-primary fw-bold">📅 ${o.delivery_date || 'Pendiente'}</small>
-                        <small class="d-block text-primary fw-bold">⏰ ${o.delivery_time || 'Pendiente'}</small>
-                    </td>
-                    <td>${new Date(o.created_at).toLocaleDateString()}</td>
-                    <td class="fw-bold text-end">$${o.total.toFixed(2)}</td>
+                <tr class="border-bottom">
+                    <td class="ps-4"><span class="text-primary fw-bold">#${o.id}</span></td>
+                    <td><div class="small text-truncate" style="max-width: 200px;">${o.items.map(i => i.product_name).join(', ')}</div></td>
+                    <td>${statusHTML}${deliveryInfo}</td>
+                    <td><div class="small">${new Date(o.created_at).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })}</div></td>
+                    <td class="text-end pe-4"><span class="fw-bold text-dark">$${o.total.toFixed(2)}</span></td>
                 </tr>`;
             }).join('');
     } catch (error) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error al cargar pedidos. Asegúrate de estar logueado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Ocurrió un error al sincronizar tus pedidos.</td></tr>';
     }
 }
 
