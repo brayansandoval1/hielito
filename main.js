@@ -16,6 +16,11 @@ if (stripe) {
 // Inicializar el carrito desde localStorage
 let cart = JSON.parse(localStorage.getItem('hielito_cart')) || [];
 
+// Variables para paginación de pedidos del usuario
+let allUserOrders = [];
+let ordersCurrentPage = 1;
+const ordersPerPage = 10;
+
 // Definir handleGoogleSignIn globalmente fuera del DOMContentLoaded
 window.handleGoogleSignIn = async (response) => {
     const id_token = response.credential;
@@ -180,7 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const deliveryData = {
                 phone: document.getElementById('check-phone').value,
-                address: document.getElementById('check-address').value
+                address: document.getElementById('check-address').value,
+                cp: document.getElementById('check-cp').value
             };
 
             const result = await processPayment(cart, paymentMethod.id, deliveryData);
@@ -601,9 +607,11 @@ function updateAuthUI() {
 
 async function loadOrders() {
     const tbody = document.getElementById('tabla-pedidos-body');
+    const pagContainer = document.getElementById('pagination-pedidos');
     if (!tbody) return;
     
     tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary spinner-border-sm"></div> Cargando tu historial...</td></tr>';
+    if (pagContainer) pagContainer.innerHTML = '';
 
     const token = localStorage.getItem('token');
     if (!token || token === 'null' || token === 'undefined') {
@@ -615,10 +623,30 @@ async function loadOrders() {
         const response = await fetch(`${API_URL}/orders/?t=${new Date().getTime()}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        const orders = await response.json();
-        
-        tbody.innerHTML = orders.length === 0 ? '<tr><td colspan="5" class="text-center py-5 text-muted">Aún no has realizado pedidos. ¡Tu hielito te espera!</td></tr>' : 
-            orders.map(o => {
+        allUserOrders = await response.json();
+        ordersCurrentPage = 1;
+        renderOrdersPage();
+    } catch (error) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Ocurrió un error al sincronizar tus pedidos.</td></tr>';
+    }
+}
+
+function renderOrdersPage() {
+    const tbody = document.getElementById('tabla-pedidos-body');
+    const pagContainer = document.getElementById('pagination-pedidos');
+    if (!tbody) return;
+
+    if (allUserOrders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">Aún no has realizado pedidos. ¡Tu hielito te espera!</td></tr>';
+        if (pagContainer) pagContainer.innerHTML = '';
+        return;
+    }
+
+    const start = (ordersCurrentPage - 1) * ordersPerPage;
+    const end = start + ordersPerPage;
+    const paginatedOrders = allUserOrders.slice(start, end);
+
+    tbody.innerHTML = paginatedOrders.map(o => {
                 let statusHTML = '';
                 if (o.status === 'Enviado') {
                     statusHTML = `<span class="badge rounded-pill bg-info"><i class="bi bi-truck me-1"></i> En camino</span>`;
@@ -635,15 +663,28 @@ async function loadOrders() {
                 return `
                 <tr class="border-bottom">
                     <td class="ps-4"><span class="text-primary fw-bold">#${o.id}</span></td>
-                    <td><div class="small text-truncate" style="max-width: 200px;">${o.items.map(i => i.product_name).join(', ')}</div></td>
+                    <td><div class="small">${o.items.map(i => `${i.quantity}x ${i.product_name}`).join('<br>')}</div></td>
                     <td>${statusHTML}${deliveryInfo}</td>
                     <td><div class="small">${new Date(o.created_at).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })}</div></td>
                     <td class="text-end pe-4"><span class="fw-bold text-dark">$${o.total.toFixed(2)}</span></td>
                 </tr>`;
-            }).join('');
-    } catch (error) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-danger">Ocurrió un error al sincronizar tus pedidos.</td></tr>';
+    }).join('');
+
+    if (pagContainer) {
+        const totalPages = Math.ceil(allUserOrders.length / ordersPerPage);
+        let html = '';
+        for (let i = 1; i <= totalPages; i++) {
+            html += `<button class="btn btn-sm ${i === ordersCurrentPage ? 'btn-primary' : 'btn-outline-primary'}" onclick="changeOrdersPage(${i})">${i}</button>`;
+        }
+        pagContainer.innerHTML = totalPages > 1 ? html : '';
     }
+}
+
+window.changeOrdersPage = (page) => {
+    ordersCurrentPage = page;
+    renderOrdersPage();
+    const orderListDiv = document.getElementById('lista-pedidos');
+    if (orderListDiv) orderListDiv.scrollTop = 0;
 }
 
 async function loadAdminOrders() {
@@ -657,7 +698,7 @@ async function loadAdminOrders() {
         tbody.innerHTML = orders.map(o => `
             <tr>
                 <td class="fw-bold">#${o.id}</td>
-                <td><strong>${o.username || 'Cliente'}</strong><br><small>${o.phone || 'N/A'}</small></td>
+                <td><strong>${o.username || 'Cliente'}</strong><br><small>${o.phone || 'N/A'}</small><br><small class="text-primary fw-bold">CP: ${o.cp || 'N/A'}</small></td>
                 <td>
                     <small class="d-block mb-1">📍 ${o.address}</small>
                     <small class="text-muted">${o.items.map(i => `${i.quantity}x ${i.product_name}`).join(', ')}</small>

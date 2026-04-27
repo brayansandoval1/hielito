@@ -255,6 +255,7 @@ def process_payment():
         status='Pendiente de envío',
         phone=data.get('phone'),
         address=data.get('address'),
+        cp=data.get('cp'),
         delivery_date=data.get('delivery_date'),
         delivery_time=data.get('delivery_time')
     )
@@ -326,7 +327,15 @@ def get_orders():
 def get_all_orders_admin():
     # Nota: En un entorno real, aquí verificaríamos si el usuario es is_admin=True
     all_orders = Order.query.order_by(Order.created_at.desc()).all()
-    return jsonify([order.to_dict() for order in all_orders]), 200
+    
+    # Enriquecemos la respuesta con el nombre de usuario para el panel admin
+    orders_data = []
+    for order in all_orders:
+        d = order.to_dict()
+        d['username'] = order.user.username if order.user else 'Cliente'
+        orders_data.append(d)
+        
+    return jsonify(orders_data), 200
 
 @orders.route('/<int:order_id>/update', methods=['PUT'])
 @jwt_required()

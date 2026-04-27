@@ -63,10 +63,12 @@ class Order(db.Model):
     # Campos de entrega adicionales
     phone = db.Column(db.String(20))
     address = db.Column(db.Text)
+    cp = db.Column(db.String(10))
     delivery_date = db.Column(db.String(20))
     delivery_time = db.Column(db.String(20))
 
     items = db.relationship('OrderItem', backref='order', lazy=True)
+    user = db.relationship('User', backref='orders')
 
     def to_dict(self):
         return {
@@ -75,6 +77,7 @@ class Order(db.Model):
             "status": self.status,
             "phone": self.phone,
             "address": self.address,
+            "cp": self.cp,
             "delivery_date": self.delivery_date,
             "delivery_time": self.delivery_time,
             "created_at": self.created_at.isoformat(),
