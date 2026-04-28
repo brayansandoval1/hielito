@@ -20,6 +20,7 @@ let cart = JSON.parse(localStorage.getItem('hielito_cart')) || [];
 let allUserOrders = [];
 let ordersCurrentPage = 1;
 const ordersPerPage = 10;
+let isIceAvailable = true;
 
 // Definir handleGoogleSignIn globalmente fuera del DOMContentLoaded
 window.handleGoogleSignIn = async (response) => {
@@ -52,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPromotions();
     updateAuthUI();
     updateCartBadge();
+    checkGlobalAvailability();
 
     // Manejar Login Manual
     const formLogin = document.getElementById('form-login');
@@ -115,6 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalAdmin = document.getElementById('modalAdminOrders');
     if (modalAdmin) modalAdmin.addEventListener('shown.bs.modal', loadAdminOrders);
 
+    const switchIce = document.getElementById('switch-ice-availability');
+    if (switchIce) {
+        switchIce.addEventListener('change', (e) => toggleIceAvailability(e.target.checked));
+    }
+
     const modalCart = document.getElementById('modalCart');
     if (modalCart) modalCart.addEventListener('shown.bs.offcanvas', renderCart);
 
@@ -145,6 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnToCheckout = document.getElementById('btn-to-checkout');
     if (btnToCheckout) {
         btnToCheckout.addEventListener('click', () => {
+            if (!isIceAvailable) {
+                alert("Lo sentimos, no hay hielo disponible por el momento. Por favor contacta por WhatsApp.");
+                return;
+            }
             if (cart.length === 0) return alert("Tu carrito está vacío.");
 
             // Calcular peso para mostrar mensaje de entrega en checkout
@@ -170,6 +181,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnConfirmPayment = document.getElementById('btn-confirm-payment');
     if (btnConfirmPayment) {
         btnConfirmPayment.addEventListener('click', async () => {
+            if (!isIceAvailable) {
+                alert("Operación cancelada: No hay disponibilidad de producto.");
+                return;
+            }
             const token = localStorage.getItem('token');
             if (!token || token === 'null') return alert("Inicia sesión para finalizar tu compra.");
 
@@ -553,13 +568,21 @@ function renderCart() {
 
     // Lógica de tiempo de entrega basada en el peso
     if (deliveryInfo) {
-        if (totalWeight > 0) {
-            const estimate = getDeliveryEstimate(totalWeight);
+        if (!isIceAvailable) {
             deliveryInfo.classList.remove('d-none');
-            deliveryInfo.innerHTML = `<strong>${estimate.title}</strong><br>${estimate.text}`;
-            deliveryInfo.className = `alert ${estimate.class} py-2 small mb-2`;
+            deliveryInfo.innerHTML = `<strong>⚠️ HIELO NO DISPONIBLE</strong><br>Por el momento no podemos procesar pedidos. Por favor, contáctanos por WhatsApp para consultar el próximo surtido.`;
+            deliveryInfo.className = 'alert alert-danger py-2 small mb-2';
+            if (document.getElementById('btn-to-checkout')) document.getElementById('btn-to-checkout').disabled = true;
         } else {
-            deliveryInfo.classList.add('d-none');
+            if (document.getElementById('btn-to-checkout')) document.getElementById('btn-to-checkout').disabled = false;
+            if (totalWeight > 0) {
+                const estimate = getDeliveryEstimate(totalWeight);
+                deliveryInfo.classList.remove('d-none');
+                deliveryInfo.innerHTML = `<strong>${estimate.title}</strong><br>${estimate.text}`;
+                deliveryInfo.className = `alert ${estimate.class} py-2 small mb-2`;
+            } else {
+                deliveryInfo.classList.add('d-none');
+            }
         }
     }
 }
@@ -741,6 +764,57 @@ window.updateOrderStatus = async (id) => {
         }
     } catch (error) {
         alert("Error al actualizar el pedido.");
+    }
+}
+
+async function toggleIceAvailability(available) {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${API_URL}/products/config`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ is_ice_available: available })
+        });
+        if (res.ok) {
+            isIceAvailable = available;
+            alert(available ? "✅ Hielo marcado como DISPONIBLE" : "⚠️ Hielo marcado como NO DISPONIBLE");
+            checkGlobalAvailability();
+        }
+    } catch (e) {
+        alert("Error al cambiar disponibilidad.");
+    }
+}
+
+async function checkGlobalAvailability() {
+    try {
+        const res = await fetch(`${API_URL}/products/config`);
+        const data = await res.json();
+        isIceAvailable = data.is_ice_available;
+        
+        const switchIce = document.getElementById('switch-ice-availability');
+        if (switchIce) switchIce.checked = isIceAvailable;
+
+        renderCart(); // Para actualizar mensajes en el carrito
+    } catch (e) {
+        console.error("Error al verificar disponibilidad:", e);
+    }
+}
+
+async function toggleIceAvailability(available) {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${API_URL}/products/config`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ is_ice_available: available })
+        });
+        if (res.ok) {
+            isIceAvailable = available;
+            alert(available ? "✅ Hielo marcado como DISPONIBLE" : "⚠️ Hielo marcado como NO DISPONIBLE");
+            checkGlobalAvailability();
+        }
+    } catch (e) {
+        alert("Error al cambiar disponibilidad.");
     }
 }
 

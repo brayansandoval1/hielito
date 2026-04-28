@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, send_from_directory
 from backend import db, jwt
-from backend.models import User, Product, Order, Payment, Category, OrderItem, Promotion, PromotionItem
+from backend.models import User, Product, Order, Payment, Category, OrderItem, Promotion, PromotionItem, StoreConfig
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
@@ -195,6 +195,33 @@ def get_product(product_id):
     product = Product.query.get_or_404(product_id)
     return jsonify(product.to_dict()), 200
 
+@products.route('/config', methods=['GET'])
+def get_config():
+    config = StoreConfig.query.filter_by(key='is_ice_available').first()
+    # Si no existe, lo creamos por defecto como disponible
+    if not config:
+        config = StoreConfig(key='is_ice_available', value='true')
+        db.session.add(config)
+        db.session.commit()
+    return jsonify({'is_ice_available': config.value == 'true'}), 200
+
+@products.route('/config', methods=['PUT'])
+@jwt_required()
+def update_config():
+    data = request.get_json()
+    config = StoreConfig.query.filter_by(key='is_ice_available').first()
+    if not config:
+        config = StoreConfig(key='is_ice_available', value='true')
+        db.session.add(config)
+    
+    config.value = 'true' if data.get('is_ice_available') else 'false'
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Disponibilidad actualizada'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # Blueprint de pagos
 payments = Blueprint('payments', __name__)
 
@@ -211,6 +238,11 @@ def process_payment():
     user = User.query.get(current_user)
     if not user:
         return jsonify({'error': f'El usuario de prueba con ID {current_user} no existe en la DB. Ejecuta seed_db.py'}), 404
+
+    # 1. Verificar disponibilidad global de hielo antes de procesar cualquier pago
+    ice_config = StoreConfig.query.filter_by(key='is_ice_available').first()
+    if ice_config and ice_config.value == 'false':
+        return jsonify({'error': 'Lo sentimos, en este momento no tenemos hielo disponible. Por favor intenta más tarde o contáctanos por WhatsApp.'}), 403
 
     if not stripe.api_key:
         return jsonify({'error': 'La clave API de Stripe no está configurada en el servidor.'}), 500

@@ -160,4 +160,8 @@ class PromotionItem(db.Model):
             'product_name': self.product.name if self.product else "Producto desconocido",
             'quantity': self.quantity
         }
-    
+
+class StoreConfig(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(50), unique=True, nullable=False)
+    value = db.Column(db.String(255), nullable=False)
