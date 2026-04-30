@@ -308,7 +308,22 @@
                     <h5 class="modal-title">HISTORIAL DE PEDIDOS</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-0">
+                <div class="modal-body p-4 bg-light">
+                    <!-- Loyalty Card -->
+                    <div id="loyalty-container" class="card shadow border-0 mb-4 d-none">
+                        <div class="card-body bg-primary text-white rounded p-4">
+                            <h6 class="text-uppercase small fw-bold mb-3"><i class="bi bi-star-fill me-2"></i>Programa de Lealtad: Cliente Distinguido</h6>
+                            <div class="d-flex justify-content-between align-items-end mb-2">
+                                <span class="fs-4 fw-bold" id="loyalty-current">0.0 kg</span>
+                                <span class="small" id="loyalty-target">Meta: 50 kg</span>
+                            </div>
+                            <div class="progress" style="height: 10px; background-color: rgba(255,255,255,0.3);">
+                                <div id="loyalty-progress-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <p class="small mt-2 mb-0" id="loyalty-msg">¡Sigue comprando para ganar tu premio!</p>
+                        </div>
+                    </div>
+
                     <div id="lista-pedidos" class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
@@ -337,9 +352,22 @@
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white d-flex align-items-center">
                     <h5 class="modal-title me-auto">GESTIÓN DE PEDIDOS (ADMIN)</h5>
+                    <div class="d-flex align-items-center me-3 border-start ps-3">
+                        <label class="text-white small me-2">Desde:</label>
+                        <input type="date" id="admin-filter-start" class="form-control form-control-sm" style="width: 130px;">
+                        <label class="text-white small mx-2">Hasta:</label>
+                        <input type="date" id="admin-filter-end" class="form-control form-control-sm" style="width: 130px;">
+                        <button class="btn btn-sm btn-light ms-2" onclick="loadAdminOrders()" title="Filtrar"><i class="bi bi-funnel"></i></button>
+                        <button class="btn btn-sm btn-outline-light ms-1" onclick="resetAdminFilters()" title="Limpiar"><i class="bi bi-x-lg"></i></button>
+                    </div>
                     <div class="form-check form-switch me-4">
                         <input class="form-check-input" type="checkbox" id="switch-ice-availability" checked>
                         <label class="form-check-label text-white small" for="switch-ice-availability">¿Hay Hielo?</label>
+                    </div>
+                    <div class="d-flex align-items-center me-3 border-start ps-3">
+                        <label class="text-white small me-2">Meta Lealtad (kg):</label>
+                        <input type="number" id="input-loyalty-threshold" class="form-control form-control-sm" style="width: 70px;" value="50">
+                        <button class="btn btn-sm btn-light ms-1" onclick="updateLoyaltyThreshold()"><i class="bi bi-save"></i></button>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -348,12 +376,14 @@
                         <table class="table table-bordered align-middle bg-white shadow-sm">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Cliente / Tel</th>
-                                    <th>Detalles y Dirección</th>
-                                    <th>Estatus Actual</th>
-                                    <th>Programar Entrega</th>
-                                    <th>Acciones</th>
+                                    <th style="width: 80px;">Pedido</th>
+                                    <th style="width: 120px;">Fecha</th>
+                                    <th>Cliente</th>
+                                    <th style="width: 150px;">Lealtad</th>
+                                    <th>Productos y Dirección</th>
+                                    <th style="width: 150px;">Estatus</th>
+                                    <th style="width: 180px;">Programación</th>
+                                    <th style="width: 100px;">Acción</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-admin-orders-body">

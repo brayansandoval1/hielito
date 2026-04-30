@@ -21,6 +21,7 @@ let allUserOrders = [];
 let ordersCurrentPage = 1;
 const ordersPerPage = 10;
 let isIceAvailable = true;
+let loyaltyThreshold = 50;
 
 // Definir handleGoogleSignIn globalmente fuera del DOMContentLoaded
 window.handleGoogleSignIn = async (response) => {
@@ -646,7 +647,41 @@ async function loadOrders() {
         const response = await fetch(`${API_URL}/orders/?t=${new Date().getTime()}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        allUserOrders = await response.json();
+        const data = await response.json();
+        allUserOrders = data.orders;
+        const accWeight = data.accumulated_weight;
+        
+        // Mostrar programa de lealtad
+        const loyaltyContainer = document.getElementById('loyalty-container');
+        if (loyaltyContainer) {
+            loyaltyContainer.classList.remove('d-none', 'border-warning');
+            document.getElementById('loyalty-current').textContent = `${accWeight} kg`;
+            document.getElementById('loyalty-target').textContent = `Meta: ${loyaltyThreshold} kg`;
+            
+            const percent = Math.min((accWeight / loyaltyThreshold) * 100, 100);
+            document.getElementById('loyalty-progress-bar').style.width = `${percent}%`;
+            document.getElementById('loyalty-progress-bar').className = percent >= 100 ? 'progress-bar bg-warning progress-bar-striped progress-bar-animated' : 'progress-bar bg-info';
+            
+            const msg = document.getElementById('loyalty-msg');
+            if (percent >= 100) {
+                const username = localStorage.getItem('username') || 'Cliente';
+                const waMessage = encodeURIComponent(`¡Hola! Soy ${username}. He completado mi meta de ${loyaltyThreshold}kg en el Programa de Lealtad de Hielito Mexicano ❄️. Adjunto captura de mi historial para canjear mi premio.`);
+                
+                loyaltyContainer.classList.add('border', 'border-warning', 'border-4');
+                msg.innerHTML = `
+                    <div class="d-flex flex-column align-items-center mt-3">
+                        <strong class="text-warning mb-2 fs-5">🏆 ¡FELICIDADES! META ALCANZADA</strong>
+                        <p class="small text-center mb-3">Toma una captura de pantalla de esta sección y presiona el botón para reclamar tu producto GRATIS por WhatsApp.</p>
+                        <a href="https://wa.me/527352282129?text=${waMessage}" target="_blank" class="btn btn-warning fw-bold shadow-sm text-dark px-4">
+                            <i class="bi bi-whatsapp me-2"></i> SOLICITAR PREMIO AHORA
+                        </a>
+                    </div>
+                `;
+            } else {
+                msg.textContent = `Te faltan ${(loyaltyThreshold - accWeight).toFixed(1)} kg para tu regalo.`;
+            }
+        }
+
         ordersCurrentPage = 1;
         renderOrdersPage();
     } catch (error) {
@@ -713,18 +748,55 @@ window.changeOrdersPage = (page) => {
 async function loadAdminOrders() {
     const tbody = document.getElementById('tabla-admin-orders-body');
     const token = localStorage.getItem('token');
+
+    // Obtener valores de los filtros de fecha
+    const startDateVal = document.getElementById('admin-filter-start')?.value;
+    const endDateVal = document.getElementById('admin-filter-end')?.value;
+
     try {
         const response = await fetch(`${API_URL}/orders/admin/all`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        const orders = await response.json();
-        tbody.innerHTML = orders.map(o => `
-            <tr>
+        let orders = await response.json();
+
+        // Aplicar filtro de rango de fechas si se han seleccionado
+        if (startDateVal || endDateVal) {
+            orders = orders.filter(o => {
+                // Extraemos solo la parte de la fecha (YYYY-MM-DD) del ISO string del servidor
+                const orderDateStr = o.created_at.split('T')[0];
+                let pass = true;
+                if (startDateVal) {
+                    pass = pass && orderDateStr >= startDateVal;
+                }
+                if (endDateVal) {
+                    pass = pass && orderDateStr <= endDateVal;
+                }
+                return pass;
+            });
+        }
+
+        tbody.innerHTML = orders.map(o => {
+            const dateStr = new Date(o.created_at).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+            return `
+            <tr class="${o.user_accumulated_weight >= loyaltyThreshold ? 'table-warning' : ''}">
                 <td class="fw-bold">#${o.id}</td>
-                <td><strong>${o.username || 'Cliente'}</strong><br><small>${o.phone || 'N/A'}</small><br><small class="text-primary fw-bold">CP: ${o.cp || 'N/A'}</small></td>
+                <td><small>${dateStr}</small></td>
+                <td>
+                    <strong>${o.username || 'Cliente'}</strong><br>
+                    <small class="text-muted">${o.phone || ''}</small>
+                </td>
+                <td>
+                    <span class="badge ${o.user_accumulated_weight >= loyaltyThreshold ? 'bg-warning text-dark' : 'bg-primary'} d-block mb-1">
+                        ${o.user_accumulated_weight} / ${loyaltyThreshold} kg
+                    </span>
+                    ${o.user_accumulated_weight >= loyaltyThreshold ? 
+                        `<button class="btn btn-dark btn-sm w-100 py-0" style="font-size: 0.7rem;" onclick="redeemLoyalty(${o.user_id}, '${o.username}')">🎁 CANJEAR</button>` : 
+                        ''
+                    }
+                </td>
                 <td>
                     <small class="d-block mb-1">📍 ${o.address}</small>
-                    <small class="text-muted">${o.items.map(i => `${i.quantity}x ${i.product_name}`).join(', ')}</small>
+                    <div class="small fw-bold text-muted border-top pt-1">${o.items.map(i => `${i.quantity}x ${i.product_name}`).join(', ')}</div>
                 </td>
                 <td>
                     <select class="form-select form-select-sm" id="status-${o.id}">
@@ -740,11 +812,37 @@ async function loadAdminOrders() {
                 <td>
                     <button class="btn btn-sm btn-success w-100" onclick="updateOrderStatus(${o.id})">Guardar</button>
                 </td>
-            </tr>`).join('');
+            </tr>`;
+        }).join('');
     } catch (error) {
         console.error("Error cargando panel de administración:", error);
     }
 }
+
+window.resetAdminFilters = () => {
+    const start = document.getElementById('admin-filter-start');
+    const end = document.getElementById('admin-filter-end');
+    if (start) start.value = '';
+    if (end) end.value = '';
+    loadAdminOrders();
+};
+
+window.redeemLoyalty = async (userId, username) => {
+    if (!confirm(`¿Confirmas que ya entregaste el premio a ${username}? Se reiniciará su progreso de lealtad.`)) return;
+    
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${API_URL}/orders/admin/redeem-loyalty/${userId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.message);
+            loadAdminOrders();
+        }
+    } catch (e) { alert("Error al canjear premio."); }
+};
 
 window.updateOrderStatus = async (id) => {
     const status = document.getElementById(`status-${id}`).value;
@@ -785,14 +883,34 @@ async function toggleIceAvailability(available) {
     }
 }
 
+async function updateLoyaltyThreshold() {
+    const val = document.getElementById('input-loyalty-threshold').value;
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${API_URL}/products/config`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ loyalty_threshold_kg: parseInt(val) })
+        });
+        if (res.ok) {
+            loyaltyThreshold = parseInt(val);
+            alert("✅ Meta de lealtad actualizada a " + val + "kg");
+        }
+    } catch (e) { alert("Error"); }
+}
+
 async function checkGlobalAvailability() {
     try {
         const res = await fetch(`${API_URL}/products/config`);
         const data = await res.json();
         isIceAvailable = data.is_ice_available;
+        loyaltyThreshold = data.loyalty_threshold_kg;
         
         const switchIce = document.getElementById('switch-ice-availability');
         if (switchIce) switchIce.checked = isIceAvailable;
+
+        const loyaltyInput = document.getElementById('input-loyalty-threshold');
+        if (loyaltyInput) loyaltyInput.value = loyaltyThreshold;
 
         renderCart(); // Para actualizar mensajes en el carrito
     } catch (e) {

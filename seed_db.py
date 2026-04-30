@@ -20,6 +20,10 @@ def seed_products():
         # Configuración inicial de disponibilidad
         ice_config = StoreConfig(key='is_ice_available', value='true')
         db.session.add(ice_config)
+        
+        # Configuración inicial del programa de lealtad (Meta: 50kg)
+        loyalty_config = StoreConfig(key='loyalty_threshold_kg', value='50')
+        db.session.add(loyalty_config)
 
         # Definir Categorías y sus productos dinámicos
         data = [
@@ -28,11 +32,11 @@ def seed_products():
                 "description": "Variedad de presentaciones para tu hogar o evento.",
                 "image": "img/bolsa.jpeg",
                 "items": [
-                    {"name": "Bolsa 1/2 kg", "price": 25.0, "ideal": "Eventos pequeños"},
-                    {"name": "Bolsa 1 kg", "price": 40.0, "ideal": "Eventos medianos"},
-                    {"name": "Bolsa 2 kg", "price": 70.0, "ideal": "Eventos grandes"},
-                    {"name": "Bolsa 3 kg", "price": 95.0, "ideal": "Eventos masivos"},
-                    {"name": "Bolsa 5 kg", "price": 150.0, "ideal": "Eventos corporativos"}
+                    {"name": "Bolsa 1/2 kg", "price": 25.0, "ideal": "Eventos pequeños", "w": 0.5},
+                    {"name": "Bolsa 1 kg", "price": 40.0, "ideal": "Eventos medianos", "w": 1.0},
+                    {"name": "Bolsa 2 kg", "price": 70.0, "ideal": "Eventos grandes", "w": 2.0},
+                    {"name": "Bolsa 3 kg", "price": 95.0, "ideal": "Eventos masivos", "w": 3.0},
+                    {"name": "Bolsa 5 kg", "price": 150.0, "ideal": "Eventos corporativos", "w": 5.0}
                 ]
             },
             {
@@ -40,10 +44,10 @@ def seed_products():
                 "description": "Listos para servir en tus fiestas.",
                 "image": "img/vaso.jpeg",
                 "items": [
-                    {"name": "10 vasos", "price": 80.0, "ideal": "Fiesta pequeña"},
-                    {"name": "25 vasos", "price": 180.0, "ideal": "Fiesta mediana"},
-                    {"name": "50 vasos", "price": 320.0, "ideal": "Fiesta grande"},
-                    {"name": "100 vasos", "price": 550.0, "ideal": "Evento corporativo"}
+                    {"name": "10 vasos", "price": 80.0, "ideal": "Fiesta pequeña", "w": 2.0},
+                    {"name": "25 vasos", "price": 180.0, "ideal": "Fiesta mediana", "w": 5.0},
+                    {"name": "50 vasos", "price": 320.0, "ideal": "Fiesta grande", "w": 10.0},
+                    {"name": "100 vasos", "price": 550.0, "ideal": "Evento corporativo", "w": 20.0}
                 ]
             },
             {
@@ -51,10 +55,10 @@ def seed_products():
                 "description": "Textura perfecta para refrescar.",
                 "image": "img/triturado.jpeg",
                 "items": [
-                    {"name": "1 kg", "price": 35.0, "ideal": "Raspados individuales"},
-                    {"name": "5 kg", "price": 150.0, "ideal": "Puesto de raspados"},
-                    {"name": "10 kg", "price": 280.0, "ideal": "Evento grande"},
-                    {"name": "20 kg", "price": 500.0, "ideal": "Feria o festival"}
+                    {"name": "1 kg", "price": 35.0, "ideal": "Raspados individuales", "w": 1.0},
+                    {"name": "5 kg", "price": 150.0, "ideal": "Puesto de raspados", "w": 5.0},
+                    {"name": "10 kg", "price": 280.0, "ideal": "Evento grande", "w": 10.0},
+                    {"name": "20 kg", "price": 500.0, "ideal": "Feria o festival", "w": 20.0}
                 ]
             },
             {
@@ -62,10 +66,10 @@ def seed_products():
                 "description": "Para bares y restaurantes.",
                 "image": "img/cubeta.jpeg",
                 "items": [
-                    {"name": "1 cubeta", "price": 120.0, "ideal": "Bar pequeño"},
-                    {"name": "3 cubetas", "price": 320.0, "ideal": "Restaurante"},
-                    {"name": "5 cubetas", "price": 500.0, "ideal": "Bar grande"},
-                    {"name": "10 cubetas", "price": 900.0, "ideal": "Hotel o evento"}
+                    {"name": "1 cubeta", "price": 120.0, "ideal": "Bar pequeño", "w": 20.0},
+                    {"name": "3 cubetas", "price": 320.0, "ideal": "Restaurante", "w": 60.0},
+                    {"name": "5 cubetas", "price": 500.0, "ideal": "Bar grande", "w": 100.0},
+                    {"name": "10 cubetas", "price": 900.0, "ideal": "Hotel o evento", "w": 200.0}
                 ]
             }
         ]
@@ -83,6 +87,7 @@ def seed_products():
                 product = Product(
                     name=item["name"],
                     price=item["price"],
+                    weight=item["w"],
                     ideal_for=item["ideal"],
                     category_id=category.id,
                     stock=100,

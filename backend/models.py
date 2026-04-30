@@ -6,6 +6,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
+    loyalty_redeemed_kg = db.Column(db.Float, default=0.0)
 
     def to_dict(self):
         return {"id": self.id, "username": self.username, "email": self.email}
@@ -33,6 +34,7 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(255))
+    weight = db.Column(db.Float, default=0.0)
     price = db.Column(db.Float, nullable=False)
     stock = db.Column(db.Integer, default=0)
     image_url = db.Column(db.String(255))
@@ -44,6 +46,7 @@ class Product(db.Model):
             "id": self.id,
             "name": self.name,
             "description": self.description,
+            "weight": self.weight,
             "price": self.price,
             "stock": self.stock,
             "image_url": self.image_url,

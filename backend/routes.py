@@ -230,10 +230,13 @@ def get_product(product_id):
 @products.route('/config', methods=['GET'])
 def get_config():
     try:
-        config = StoreConfig.query.filter_by(key='is_ice_available').first()
-        # Si no existe en la DB, asumimos disponible por defecto para no romper el front
-        is_available = config.value == 'true' if config else True
-        return jsonify({'is_ice_available': is_available}), 200
+        config_ice = StoreConfig.query.filter_by(key='is_ice_available').first()
+        config_loyalty = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
+        
+        return jsonify({
+            'is_ice_available': config_ice.value == 'true' if config_ice else True,
+            'loyalty_threshold_kg': int(config_loyalty.value) if config_loyalty else 50
+        }), 200
     except Exception as e:
         print(f"Error en get_config: {e}")
         return jsonify({'is_ice_available': True}), 200
@@ -242,12 +245,21 @@ def get_config():
 @jwt_required()
 def update_config():
     data = request.get_json()
-    config = StoreConfig.query.filter_by(key='is_ice_available').first()
-    if not config:
-        config = StoreConfig(key='is_ice_available', value='true')
-        db.session.add(config)
     
-    config.value = 'true' if data.get('is_ice_available') else 'false'
+    if 'is_ice_available' in data:
+        config = StoreConfig.query.filter_by(key='is_ice_available').first()
+        if not config:
+            config = StoreConfig(key='is_ice_available', value='true')
+            db.session.add(config)
+        config.value = 'true' if data.get('is_ice_available') else 'false'
+        
+    if 'loyalty_threshold_kg' in data:
+        config = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
+        if not config:
+            config = StoreConfig(key='loyalty_threshold_kg', value='50')
+            db.session.add(config)
+        config.value = str(data.get('loyalty_threshold_kg'))
+
     try:
         db.session.commit()
         return jsonify({'message': 'Disponibilidad actualizada'}), 200
@@ -387,8 +399,23 @@ orders = Blueprint('orders', __name__)
 @jwt_required()
 def get_orders():
     current_user = int(get_jwt_identity())
-    orders = Order.query.filter_by(user_id=current_user).all()
-    return jsonify([order.to_dict() for order in orders]), 200
+    user = User.query.get(current_user)
+    user_orders = Order.query.filter_by(user_id=current_user).order_by(Order.created_at.desc()).all()
+    
+    # Calcular peso acumulado de pedidos entregados
+    total_historical_weight = 0
+    for order in user_orders:
+        if order.status == 'Entregado':
+            for item in order.items:
+                total_historical_weight += (item.product.weight if item.product else 0) * item.quantity
+
+    # El peso disponible es el total menos lo que ya canjeó
+    available_weight = max(0, total_historical_weight - (user.loyalty_redeemed_kg if user.loyalty_redeemed_kg else 0))
+
+    return jsonify({
+        'orders': [order.to_dict() for order in user_orders],
+        'accumulated_weight': round(available_weight, 2)
+    }), 200
 
 @orders.route('/admin/all', methods=['GET'])
 @jwt_required()
@@ -399,11 +426,42 @@ def get_all_orders_admin():
     # Enriquecemos la respuesta con el nombre de usuario para el panel admin
     orders_data = []
     for order in all_orders:
+        # Calcular peso acumulado total histórico del usuario de este pedido
+        user_hist_w = 0
+        delivered_orders = Order.query.filter_by(user_id=order.user_id, status='Entregado').all()
+        for d_order in delivered_orders:
+            for item in d_order.items:
+                user_hist_w += (item.product.weight if item.product else 0) * item.quantity
+
+        available_w = max(0, user_hist_w - (order.user.loyalty_redeemed_kg if order.user.loyalty_redeemed_kg else 0))
+
         d = order.to_dict()
         d['username'] = order.user.username if order.user else 'Cliente'
+        d['user_accumulated_weight'] = round(available_w, 2)
         orders_data.append(d)
         
     return jsonify(orders_data), 200
+
+@orders.route('/admin/redeem-loyalty/<int:user_id>', methods=['POST'])
+@jwt_required()
+def redeem_loyalty(user_id):
+    # Aquí se registra que el admin entregó el premio y se "restan" los kilos de la meta
+    user = User.query.get_or_404(user_id)
+    config_loyalty = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
+    threshold = float(config_loyalty.value) if config_loyalty else 50.0
+
+    # Aumentamos el contador de kilos canjeados
+    user.loyalty_redeemed_kg = (user.loyalty_redeemed_kg or 0.0) + threshold
+    
+    try:
+        db.session.commit()
+        return jsonify({
+            'message': f'Premio canjeado para {user.username}. Se han descontado {threshold}kg de su balance actual.',
+            'new_redeemed_total': user.loyalty_redeemed_kg
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @orders.route('/<int:order_id>/update', methods=['PUT'])
 @jwt_required()
