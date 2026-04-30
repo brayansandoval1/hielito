@@ -6,7 +6,12 @@
             --amarillo-ver-productos: #fbc02d; /* Botón amarillo */
             --gris-texto: #5c5c5c; /* Texto descriptivo */
         }
-
+.hero-title{
+color: #e8dcdc;
+}
+.hero-subtitle{
+color: #30c4f6;
+}
         body {
             font-family: 'Open Sans', sans-serif;
             background-color: var(--azul-hielo-claro);
