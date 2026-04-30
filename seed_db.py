@@ -1,5 +1,5 @@
 from app import app, db
-from backend.models import Product, User, Category, Promotion, PromotionItem
+from backend.models import Product, User, Category, Promotion, PromotionItem, StoreConfig
 from werkzeug.security import generate_password_hash
 from datetime import datetime
 
@@ -16,6 +16,10 @@ def seed_products():
             password=generate_password_hash("password123", method='pbkdf2:sha256')
         )
         db.session.add(test_user)
+
+        # Configuración inicial de disponibilidad
+        ice_config = StoreConfig(key='is_ice_available', value='true')
+        db.session.add(ice_config)
 
         # Definir Categorías y sus productos dinámicos
         data = [

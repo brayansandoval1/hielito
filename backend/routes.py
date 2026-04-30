@@ -9,6 +9,8 @@ from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import traceback
 import os
+import requests
+import time
 
 # Configurar Stripe
 def get_google_client_id():
@@ -20,6 +22,26 @@ def get_google_client_id():
         load_dotenv()
         client_id = os.getenv('GOOGLE_CLIENT_ID')
     return client_id
+
+def send_admin_notification(order):
+    """Envía una notificación al administrador vía Telegram"""
+    token = os.getenv('TELEGRAM_BOT_TOKEN') # Debes crear un bot en BotFather
+    chat_id = os.getenv('TELEGRAM_CHAT_ID') # Tu ID de chat de Telegram
+    if not token or not chat_id:
+        return
+
+    mensaje = f"❄️ <b>¡NUEVO PEDIDO #{order.id}!</b>\n\n"
+    mensaje += f"👤 <b>Cliente:</b> {order.user.username}\n"
+    mensaje += f"💰 <b>Total:</b> ${order.total:.2f} MXN\n"
+    mensaje += f"📍 <b>Dirección:</b> {order.address}\n"
+    mensaje += f"📞 <b>Tel:</b> {order.phone}\n\n"
+    mensaje += "📱 Revisa el Panel Admin para programar la entrega."
+
+    try:
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        requests.post(url, json={'chat_id': chat_id, 'text': mensaje, 'parse_mode': 'HTML'}, timeout=5)
+    except Exception as e:
+        print(f"Error enviando notificación: {e}")
 
 # Blueprint de autenticación
 auth = Blueprint('auth', __name__)
@@ -117,20 +139,17 @@ def google_login():
 
         if not user:
             # Asegurar que el username sea único y no exceda el límite de 80 caracteres
-            # Metodo optimizado: busqueda en una sola consulta sin ciclo
             base_username = username[:70]
             existing_users = User.query.filter(User.username.like(f"{base_username}%")).all()
-            existing_suffixes = []
+            existing_usernames = {u.username for u in existing_users}
             
-            for u in existing_users:
-                suffix = u.username.replace(base_username, "")
-                if suffix.isdigit():
-                    existing_suffixes.append(int(suffix))
-            
-            if not existing_suffixes:
+            if base_username not in existing_usernames:
                 final_username = base_username
             else:
-                final_username = f"{base_username}{max(existing_suffixes) + 1}"
+                counter = 1
+                while f"{base_username}{counter}" in existing_usernames:
+                    counter += 1
+                final_username = f"{base_username}{counter}"
 
             # Si no existe, lo registramos
             user = User(
@@ -148,11 +167,11 @@ def google_login():
                 except Exception as e:
                     db.session.rollback()
                     if 'locked' in str(e).lower() and attempt < max_retries -1:
-                        import time
                         time.sleep(0.5)
                         db.session.add(user) # Re-añadir el objeto tras rollback
                     else:
-                        raise
+                        print(f"Error fatal registrando usuario Google: {traceback.format_exc()}")
+                        return jsonify({'error': 'Error al registrar usuario'}), 500
 
         # Generar token JWT (convertimos ID a string para asegurar compatibilidad de serialización)
         access_token = create_access_token(identity=str(user.id), expires_delta=timedelta(hours=24))
@@ -177,18 +196,26 @@ promotions = Blueprint('promotions', __name__)
 
 @promotions.route('/', methods=['GET'])
 def get_promotions():
-    # Obtenemos la fecha actual para mostrar solo promos vigentes
-    now = datetime.now()
-    active_promos = Promotion.query.filter(Promotion.expiration_date >= now).all()
-    return jsonify([p.to_dict() for p in active_promos]), 200
+    try:
+        # Obtenemos la fecha actual para mostrar solo promos vigentes
+        now = datetime.now()
+        active_promos = Promotion.query.filter(Promotion.expiration_date >= now).all()
+        return jsonify([p.to_dict() for p in active_promos]), 200
+    except Exception as e:
+        print(f"Error en get_promotions: {e}")
+        return jsonify([]), 200 # Devolvemos lista vacía para no romper el front
 
 # Blueprint de productos
 products = Blueprint('products', __name__)
 
 @products.route('/', methods=['GET'])
 def get_products():
-    categories = Category.query.all()
-    return jsonify([cat.to_dict() for cat in categories]), 200
+    try:
+        categories = Category.query.all()
+        return jsonify([cat.to_dict() for cat in categories]), 200
+    except Exception as e:
+        print(f"Error en get_products: {traceback.format_exc()}")
+        return jsonify({'error': 'Error de base de datos'}), 500
 
 @products.route('/<int:product_id>', methods=['GET'])
 def get_product(product_id):
@@ -197,13 +224,14 @@ def get_product(product_id):
 
 @products.route('/config', methods=['GET'])
 def get_config():
-    config = StoreConfig.query.filter_by(key='is_ice_available').first()
-    # Si no existe, lo creamos por defecto como disponible
-    if not config:
-        config = StoreConfig(key='is_ice_available', value='true')
-        db.session.add(config)
-        db.session.commit()
-    return jsonify({'is_ice_available': config.value == 'true'}), 200
+    try:
+        config = StoreConfig.query.filter_by(key='is_ice_available').first()
+        # Si no existe en la DB, asumimos disponible por defecto para no romper el front
+        is_available = config.value == 'true' if config else True
+        return jsonify({'is_ice_available': is_available}), 200
+    except Exception as e:
+        print(f"Error en get_config: {e}")
+        return jsonify({'is_ice_available': True}), 200
 
 @products.route('/config', methods=['PUT'])
 @jwt_required()
@@ -244,7 +272,7 @@ def process_payment():
     if ice_config and ice_config.value == 'false':
         return jsonify({'error': 'Lo sentimos, en este momento no tenemos hielo disponible. Por favor intenta más tarde o contáctanos por WhatsApp.'}), 403
 
-    if not stripe.api_key:
+    if not stripe.api_key or "aqui" in stripe.api_key:
         return jsonify({'error': 'La clave API de Stripe no está configurada en el servidor.'}), 500
 
     if not data or not data.get('items') or not data.get('payment_method'):
@@ -327,6 +355,9 @@ def process_payment():
         db.session.flush()
 
         db.session.commit()
+
+        # Enviar notificación al celular del dueño
+        send_admin_notification(order)
 
         return jsonify({
             'message': 'Pago procesado exitosamente',

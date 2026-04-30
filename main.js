@@ -800,24 +800,6 @@ async function checkGlobalAvailability() {
     }
 }
 
-async function toggleIceAvailability(available) {
-    const token = localStorage.getItem('token');
-    try {
-        const res = await fetch(`${API_URL}/products/config`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ is_ice_available: available })
-        });
-        if (res.ok) {
-            isIceAvailable = available;
-            alert(available ? "✅ Hielo marcado como DISPONIBLE" : "⚠️ Hielo marcado como NO DISPONIBLE");
-            checkGlobalAvailability();
-        }
-    } catch (e) {
-        alert("Error al cambiar disponibilidad.");
-    }
-}
-
 async function processPayment(items, paymentMethodId, deliveryData) {
     const token = localStorage.getItem('token');
     const response = await fetch(`${API_URL}/payments/process`, {

@@ -27,7 +27,15 @@ def create_app():
     # Configurar Stripe API Key
     stripe.api_key = os.getenv('STRIPE_API_KEY')
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', f'sqlite:///{db_path}')
+    # Forzamos el uso de la ruta absoluta para SQLite para evitar errores de "unable to open database file"
+    env_db_url = os.getenv('DATABASE_URL')
+    if env_db_url and not env_db_url.startswith('sqlite:'):
+        # Si es una base de datos externa (como PostgreSQL), usamos la del .env
+        app.config['SQLALCHEMY_DATABASE_URI'] = env_db_url
+    else:
+        # Para desarrollo local con SQLite, usamos siempre la ruta absoluta calculada
+        app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key')
     
     # Configuracion para evitar database is locked en SQLite
