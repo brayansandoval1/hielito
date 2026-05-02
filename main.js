@@ -718,11 +718,15 @@ function renderOrdersPage() {
                     ? `<div class="mt-1 small fw-bold text-primary"><i class="bi bi-calendar-event me-1"></i> ${o.delivery_date} <i class="bi bi-alarm ms-1"></i> ${o.delivery_time || ''}</div>`
                     : `<div class="mt-1 small text-muted italic">Logística en curso...</div>`;
 
+                const prizeBadge = o.has_loyalty_prize 
+                    ? `<div class="mt-1"><span class="badge bg-warning text-dark border border-dark"><i class="bi bi-gift-fill me-1"></i> ¡INCLUYE REGALO!</span></div>` 
+                    : '';
+
                 return `
                 <tr class="border-bottom">
                     <td class="ps-4"><span class="text-primary fw-bold">#${o.id}</span></td>
                     <td><div class="small">${o.items.map(i => `${i.quantity}x ${i.product_name}`).join('<br>')}</div></td>
-                    <td>${statusHTML}${deliveryInfo}</td>
+                    <td>${statusHTML}${prizeBadge}${deliveryInfo}</td>
                     <td><div class="small">${new Date(o.created_at).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })}</div></td>
                     <td class="text-end pe-4"><span class="fw-bold text-dark">$${o.total.toFixed(2)}</span></td>
                 </tr>`;
@@ -777,8 +781,13 @@ async function loadAdminOrders() {
 
         tbody.innerHTML = orders.map(o => {
             const dateStr = new Date(o.created_at).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+            const prizeBadge = o.has_loyalty_prize ? 
+                `<div class="badge bg-warning text-dark border border-dark w-100 mb-1 py-2">
+                    <i class="bi bi-gift-fill me-1"></i> LLEVAR REGALO
+                 </div>` : '';
+
             return `
-            <tr class="${o.user_accumulated_weight >= loyaltyThreshold ? 'table-warning' : ''}">
+            <tr class="${o.has_loyalty_prize ? 'table-warning' : ''}">
                 <td class="fw-bold">#${o.id}</td>
                 <td><small>${dateStr}</small></td>
                 <td>
@@ -786,7 +795,8 @@ async function loadAdminOrders() {
                     <small class="text-muted">${o.phone || ''}</small>
                 </td>
                 <td>
-                    <span class="badge ${o.user_accumulated_weight >= loyaltyThreshold ? 'bg-warning text-dark' : 'bg-primary'} d-block mb-1">
+                    ${prizeBadge}
+                    <span class="badge bg-primary d-block mb-1">
                         ${o.user_accumulated_weight} / ${loyaltyThreshold} kg
                     </span>
                     ${o.user_accumulated_weight >= loyaltyThreshold ? 

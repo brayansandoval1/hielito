@@ -36,11 +36,14 @@ def send_admin_notification(order):
     mensaje += f"📍 <b>Dirección:</b> {order.address}\n"
     mensaje += f"📞 <b>Tel:</b> {order.phone}\n\n"
     mensaje += "📦 <b>Productos:</b>\n"
+    if order.has_loyalty_prize:
+        mensaje += "🎁 <b>¡ATENCIÓN: INCLUIR REGALO DE LEALTAD!</b> 🎁\n"
+        
     for item in order.items:
         # Asegurarse de que product_name esté disponible, ya sea de un producto o una promoción
         product_name = item.product.name if item.product else "Producto desconocido"
         mensaje += f"  - {item.quantity}x {product_name} (${item.price:.2f} c/u)\n"
-    mensaje += "� Revisa el Panel Admin para programar la entrega."
+    mensaje += "📱 Revisa el Panel Admin para programar la entrega."
 
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -262,7 +265,7 @@ def update_config():
 
     try:
         db.session.commit()
-        return jsonify({'message': 'Disponibilidad actualizada'}), 200
+        return jsonify({'message': 'Configuración actualizada'}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -326,6 +329,21 @@ def process_payment():
             total += product.price * item['quantity']
             items_to_process.append({'product': product, 'quantity': item['quantity'], 'price_at_moment': product.price})
 
+    # --- LÓGICA DE LEALTAD AUTOMÁTICA ---
+    # Verificar si el cliente es elegible para premio en este pedido
+    user_orders = Order.query.filter_by(user_id=current_user, status='Entregado').all()
+    hist_w = 0
+    for o in user_orders:
+        for i in o.items:
+            hist_w += (i.product.weight if i.product else 0) * i.quantity
+    
+    available_w = hist_w - (user.loyalty_redeemed_kg or 0)
+    threshold_cfg = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
+    threshold = float(threshold_cfg.value) if threshold_cfg else 50.0
+    
+    should_include_prize = available_w >= threshold
+    # ------------------------------------
+
     order = Order(
         user_id=current_user,
         total=total,
@@ -334,7 +352,8 @@ def process_payment():
         address=data.get('address'),
         cp=data.get('cp'),
         delivery_date=data.get('delivery_date'),
-        delivery_time=data.get('delivery_time')
+        delivery_time=data.get('delivery_time'),
+        has_loyalty_prize=should_include_prize
     )
     db.session.add(order)
     db.session.flush()
@@ -470,6 +489,13 @@ def update_order_status(order_id):
     order = Order.query.get_or_404(order_id)
     
     if 'status' in data:
+        # LÓGICA DE LEALTAD: Si el pedido pasa a 'Entregado' y tenía premio, se procesa el canje
+        if data['status'] == 'Entregado' and order.status != 'Entregado' and order.has_loyalty_prize:
+            config_loyalty = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
+            threshold = float(config_loyalty.value) if config_loyalty else 50.0
+            # Sumamos la meta a lo canjeado para "reiniciar" el contador manteniendo el excedente
+            order.user.loyalty_redeemed_kg = (order.user.loyalty_redeemed_kg or 0.0) + threshold
+
         order.status = data['status']
     if 'delivery_date' in data:
         order.delivery_date = data['delivery_date']

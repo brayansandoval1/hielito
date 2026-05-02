@@ -69,6 +69,7 @@ class Order(db.Model):
     cp = db.Column(db.String(10))
     delivery_date = db.Column(db.String(20))
     delivery_time = db.Column(db.String(20))
+    has_loyalty_prize = db.Column(db.Boolean, default=False)
 
     items = db.relationship('OrderItem', backref='order', lazy=True)
     user = db.relationship('User', backref='orders')
@@ -85,6 +86,7 @@ class Order(db.Model):
             "delivery_time": self.delivery_time,
             "created_at": self.created_at.isoformat(),
             "items": [item.to_dict() for item in self.items],
+            "has_loyalty_prize": self.has_loyalty_prize,
             "total": self.total, # Mover total al final para consistencia
         }
 
