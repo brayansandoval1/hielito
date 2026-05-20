@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import stripe
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+from werkzeug.utils import secure_filename
 import traceback
 import os
 import requests
@@ -213,6 +214,73 @@ def get_promotions():
         print(f"Error en get_promotions: {e}")
         return jsonify([]), 200 # Devolvemos lista vacía para no romper el front
 
+@promotions.route('/<int:promo_id>', methods=['PUT'])
+@jwt_required()
+def update_promotion(promo_id):
+    promo = Promotion.query.get_or_404(promo_id)
+    data = request.get_json()
+    try:
+        promo.header_title = data['header_title']
+        promo.header_subtitle = data.get('header_subtitle')
+        promo.promo_name = data['promo_name']
+        promo.description = data.get('description')
+        promo.original_price = float(data['original_price'])
+        promo.promo_price = float(data['promo_price'])
+        promo.expiration_date = datetime.fromisoformat(data['expiration_date'].replace('Z', ''))
+        promo.color_scheme = data.get('color_scheme', 'warning')
+
+        # Eliminar items existentes y añadir los nuevos
+        PromotionItem.query.filter_by(promotion_id=promo.id).delete()
+        for item in data.get('items', []):
+            pi = PromotionItem(promotion_id=promo.id, product_id=item['product_id'], quantity=item['quantity'])
+            db.session.add(pi)
+            
+        db.session.commit()
+        return jsonify(promo.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@promotions.route('/', methods=['POST'])
+@jwt_required()
+def create_promotion():
+    data = request.get_json()
+    try:
+        new_promo = Promotion(
+            header_title=data['header_title'],
+            header_subtitle=data.get('header_subtitle'),
+            promo_name=data['promo_name'],
+            description=data.get('description'),
+            original_price=float(data['original_price']),
+            promo_price=float(data['promo_price']),
+            expiration_date=datetime.fromisoformat(data['expiration_date'].replace('Z', '')),
+            color_scheme=data.get('color_scheme', 'warning')
+        )
+        db.session.add(new_promo)
+        db.session.flush()
+        
+        for item in data.get('items', []):
+            pi = PromotionItem(promotion_id=new_promo.id, product_id=item['product_id'], quantity=item['quantity'])
+            db.session.add(pi)
+            
+        db.session.commit()
+        return jsonify(new_promo.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@promotions.route('/<int:promo_id>', methods=['DELETE'])
+@jwt_required()
+def delete_promotion(promo_id):
+    promo = Promotion.query.get_or_404(promo_id)
+    try:
+        db.session.delete(promo)
+        db.session.commit()
+        return jsonify({'message': 'Promoción eliminada'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
 # Blueprint de productos
 products = Blueprint('products', __name__)
 
@@ -224,6 +292,121 @@ def get_products():
     except Exception as e:
         print(f"Error en get_products: {traceback.format_exc()}")
         return jsonify({'error': 'Error de base de datos'}), 500
+
+@products.route('/upload', methods=['POST'])
+@jwt_required()
+def upload_image():
+    """Ruta genérica para subir imágenes al servidor"""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No se encontró el archivo'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'Nombre de archivo vacío'}), 400
+
+    if file:
+        # Crear carpeta si no existe
+        upload_dir = os.path.join(os.getcwd(), 'img')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        filename = secure_filename(f"{int(time.time())}_{file.filename}")
+        file_path = os.path.join(upload_dir, filename)
+        file.save(file_path)
+        
+        # Retornamos la URL relativa para guardar en DB
+        return jsonify({'url': f'img/{filename}'}), 200
+
+@products.route('/', methods=['POST'])
+@jwt_required()
+def create_product():
+    data = request.get_json()
+    try:
+        new_p = Product(
+            name=data['name'],
+            description=data.get('description'),
+            weight=float(data.get('weight', 0)),
+            price=float(data['price']),
+            stock=int(data.get('stock', 0)),
+            image_url=data.get('image_url'),
+            ideal_for=data.get('ideal_for'),
+            category_id=data['category_id']
+        )
+        db.session.add(new_p)
+        db.session.commit()
+        return jsonify(new_p.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@products.route('/<int:product_id>', methods=['PUT'])
+@jwt_required()
+def update_product(product_id):
+    p = Product.query.get_or_404(product_id)
+    data = request.get_json()
+    try:
+        p.name = data['name']
+        p.description = data.get('description')
+        p.price = float(data['price'])
+        p.stock = int(data.get('stock', 0))
+        p.image_url = data.get('image_url')
+        p.category_id = data['category_id']
+        db.session.commit()
+        return jsonify(p.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@products.route('/<int:product_id>', methods=['DELETE'])
+@jwt_required()
+def delete_product(product_id):
+    p = Product.query.get_or_404(product_id)
+    try:
+        db.session.delete(p)
+        db.session.commit()
+        return jsonify({'message': 'Producto eliminado'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@products.route('/categories/<int:cat_id>', methods=['PUT'])
+@jwt_required()
+def update_category(cat_id):
+    c = Category.query.get_or_404(cat_id)
+    data = request.get_json()
+    try:
+        c.name = data['name']
+        c.description = data.get('description')
+        c.image_url = data.get('image_url')
+        db.session.commit()
+        return jsonify(c.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@products.route('/categories', methods=['POST'])
+@jwt_required()
+def create_category():
+    data = request.get_json()
+    try:
+        new_c = Category(name=data['name'], description=data.get('description'), image_url=data.get('image_url'))
+        db.session.add(new_c)
+        db.session.commit()
+        return jsonify(new_c.to_dict()), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@products.route('/categories/<int:cat_id>', methods=['DELETE'])
+@jwt_required()
+def delete_category(cat_id):
+    c = Category.query.get_or_404(cat_id)
+    try:
+        db.session.delete(c)
+        db.session.commit()
+        return jsonify({'message': 'Categoría eliminada'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @products.route('/<int:product_id>', methods=['GET'])
 def get_product(product_id):

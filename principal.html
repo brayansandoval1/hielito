@@ -350,49 +350,178 @@
     <div class="modal fade" id="modalAdminOrders" tabindex="-1">
         <div class="modal-dialog modal-fullscreen">
             <div class="modal-content">
-                <div class="modal-header bg-danger text-white d-flex align-items-center">
+                <div class="modal-header bg-dark text-white d-flex align-items-center py-2">
                     <h5 class="modal-title me-auto">GESTIÓN DE PEDIDOS (ADMIN)</h5>
-                    <div class="d-flex align-items-center me-3 border-start ps-3">
-                        <label class="text-white small me-2">Desde:</label>
-                        <input type="date" id="admin-filter-start" class="form-control form-control-sm" style="width: 130px;">
-                        <label class="text-white small mx-2">Hasta:</label>
-                        <input type="date" id="admin-filter-end" class="form-control form-control-sm" style="width: 130px;">
-                        <button class="btn btn-sm btn-light ms-2" onclick="loadAdminOrders()" title="Filtrar"><i class="bi bi-funnel"></i></button>
-                        <button class="btn btn-sm btn-outline-light ms-1" onclick="resetAdminFilters()" title="Limpiar"><i class="bi bi-x-lg"></i></button>
-                    </div>
-                    <div class="form-check form-switch me-4">
-                        <input class="form-check-input" type="checkbox" id="switch-ice-availability" checked>
-                        <label class="form-check-label text-white small" for="switch-ice-availability">¿Hay Hielo?</label>
-                    </div>
-                    <div class="d-flex align-items-center me-3 border-start ps-3">
-                        <label class="text-white small me-2">Meta Lealtad (kg):</label>
-                        <input type="number" id="input-loyalty-threshold" class="form-control form-control-sm" style="width: 70px;" value="50">
-                        <button class="btn btn-sm btn-light ms-1" onclick="updateLoyaltyThreshold()"><i class="bi bi-save"></i></button>
-                    </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body bg-light">
-                    <div class="table-responsive">
-                        <table class="table table-bordered align-middle bg-white shadow-sm">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th style="width: 80px;">Pedido</th>
-                                    <th style="width: 120px;">Fecha</th>
-                                    <th>Cliente</th>
-                                    <th style="width: 150px;">Lealtad</th>
-                                    <th>Productos y Dirección</th>
-                                    <th style="width: 150px;">Estatus</th>
-                                    <th style="width: 180px;">Programación</th>
-                                    <th style="width: 100px;">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabla-admin-orders-body">
-                                <!-- Se llena con JS -->
-                            </tbody>
-                        </table>
+                    <div class="container-fluid">
+                        <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+                            <li class="nav-item"><button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#pane-orders">PEDIDOS</button></li>
+                            <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#pane-catalog" onclick="loadAdminCatalog()">CATÁLOGO</button></li>
+                            <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="tab" data-bs-target="#pane-promos" onclick="loadAdminPromotionsTable()">PROMOCIONES</button></li>
+                            <li class="nav-item ms-auto pt-1">
+                                <div class="d-flex gap-3 align-items-center">
+                                    <div class="form-check form-switch border-end pe-3">
+                                        <input class="form-check-input" type="checkbox" id="switch-ice-availability" checked>
+                                        <label class="form-check-label small" for="switch-ice-availability">Hielo Disponible</label>
+                                    </div>
+                                    <div class="small">
+                                        Meta Lealtad: <input type="number" id="input-loyalty-threshold" class="d-inline form-control form-control-sm" style="width: 60px;"> kg
+                                        <button class="btn btn-sm btn-outline-primary py-0" onclick="updateLoyaltyThreshold()"><i class="bi bi-check"></i></button>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content">
+                            <!-- Pestaña Pedidos -->
+                            <div class="tab-pane fade show active" id="pane-orders">
+                                <div class="d-flex mb-3 gap-2 align-items-center bg-white p-2 rounded shadow-sm">
+                                    <span class="small fw-bold">Filtrar:</span>
+                                    <input type="date" id="admin-filter-start" class="form-control form-control-sm w-auto">
+                                    <input type="date" id="admin-filter-end" class="form-control form-control-sm w-auto">
+                                    <button class="btn btn-sm btn-dark" onclick="loadAdminOrders()"><i class="bi bi-search"></i></button>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="resetAdminFilters()"><i class="bi bi-x-lg"></i></button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered align-middle bg-white shadow-sm">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>ID</th><th>Fecha</th><th>Cliente</th><th>Total</th><th>Lealtad</th><th>Detalles</th><th>Estatus</th><th>Entrega</th><th>Acción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tabla-admin-orders-body"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Pestaña Catálogo (Categorías y Productos) -->
+                            <div class="tab-pane fade" id="pane-catalog">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="card shadow-sm mb-4">
+                                            <div class="card-header bg-primary text-white d-flex justify-content-between">
+                                                <h6 class="mb-0">Categorías</h6>
+                                                <button class="btn btn-sm btn-light py-0" onclick="showCategoryModal()">+ Nueva</button>
+                                            </div>
+                                            <div class="list-group list-group-flush" id="admin-categories-list"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="card shadow-sm">
+                                            <div class="card-header bg-secondary text-white d-flex justify-content-between">
+                                                <h6 class="mb-0">Productos</h6>
+                                                <button class="btn btn-sm btn-light py-0" onclick="showProductModal()">+ Nuevo</button>
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table align-middle mb-0">
+                                                    <thead><tr><th>Img</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
+                                                    <tbody id="admin-products-list"></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Pestaña Promociones -->
+                            <div class="tab-pane fade" id="pane-promos">
+                                <div class="card shadow-sm">
+                                    <div class="card-header bg-warning text-dark d-flex justify-content-between">
+                                        <h6 class="mb-0 fw-bold">Promociones Activas</h6>
+                                        <button class="btn btn-sm btn-dark py-0" onclick="showPromoModal()">+ Nueva Promo</button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table align-middle">
+                                            <thead><tr><th>ID</th><th>Nombre</th><th>Header</th><th>Precios</th><th>Expira</th><th>Color</th><th>Acciones</th></tr></thead>
+                                            <tbody id="admin-promos-list"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar/Editar Categoría -->
+    <div class="modal fade" id="modalAdminCategory" tabindex="-1">
+        <div class="modal-dialog">
+            <form id="form-admin-category" class="modal-content">
+                <div class="modal-header bg-primary text-white"><h5 class="modal-title" id="cat-modal-title">Nueva Categoría</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="cat-id">
+                    <div class="mb-3"><label class="form-label">Nombre</label><input type="text" id="cat-name" class="form-control" required></div>
+                    <div class="mb-3"><label class="form-label">Imagen (Archivo)</label><input type="file" id="cat-img-file" class="form-control" accept="image/*"></div>
+                    <div class="mb-3"><label class="form-label">Descripción</label><textarea id="cat-desc" class="form-control"></textarea></div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary w-100">Guardar Categoría</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar/Editar Producto -->
+    <div class="modal fade" id="modalAdminProduct" tabindex="-1">
+        <div class="modal-dialog">
+            <form id="form-admin-product" class="modal-content">
+                <div class="modal-header bg-secondary text-white"><h5 class="modal-title" id="prod-modal-title">Nuevo Producto</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="prod-id">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-8"><label class="form-label">Nombre</label><input type="text" id="prod-name" class="form-control" required></div>
+                        <div class="col-md-4"><label class="form-label">Categoría</label><select id="prod-cat" class="form-select" required></select></div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4"><label class="form-label">Precio</label><input type="number" step="0.01" id="prod-price" class="form-control" required></div>
+                        <div class="col-md-4"><label class="form-label">Stock</label><input type="number" id="prod-stock" class="form-control" value="0"></div>
+                        <div class="col-md-4"><label class="form-label">Peso (kg)</label><input type="number" step="0.1" id="prod-weight" class="form-control" value="0"></div>
+                    </div>
+                    <div class="mb-3"><label class="form-label">Imagen (Archivo)</label><input type="file" id="prod-img-file" class="form-control" accept="image/*"></div>
+                    <div class="mb-3"><label class="form-label">Ideal para</label><input type="text" id="prod-ideal" class="form-control"></div>
+                    <div class="mb-3"><label class="form-label">Descripción</label><textarea id="prod-desc" class="form-control"></textarea></div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-secondary w-100">Guardar Producto</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar Promoción -->
+    <div class="modal fade" id="modalAdminPromotion" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <form id="form-admin-promotion" class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title fw-bold">Configurar Nueva Promoción</h5>
+                    <input type="hidden" id="promo-id">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6"><label class="form-label">Título Header (Ej: 🎉 TEMPORADA)</label><input type="text" id="promo-header-title" class="form-control" required></div>
+                        <div class="col-md-6"><label class="form-label">Subtítulo Header</label><input type="text" id="promo-header-subtitle" class="form-control"></div>
+                        <div class="col-md-8"><label class="form-label">Nombre de la Promo</label><input type="text" id="promo-name" class="form-control" required></div>
+                        <div class="col-md-4"><label class="form-label">Color (Bootstrap Class)</label><select id="promo-color" class="form-select"><option value="warning">Amarillo (Warning)</option><option value="success">Verde (Success)</option><option value="info">Azul (Info)</option><option value="danger">Rojo (Danger)</option></select></div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4"><label class="form-label">Precio Original</label><input type="number" step="0.01" id="promo-price-orig" class="form-control" required></div>
+                        <div class="col-md-4"><label class="form-label">Precio Promo</label><input type="number" step="0.01" id="promo-price-final" class="form-control" required></div>
+                        <div class="col-md-4"><label class="form-label">Fecha Expiración</label><input type="datetime-local" id="promo-expire" class="form-control" required></div>
+                    </div>
+                    <div class="mb-3"><label class="form-label">Descripción corta</label><textarea id="promo-desc" class="form-control" rows="2"></textarea></div>
+                    
+                    <hr>
+                    <h6 class="fw-bold"><i class="bi bi-box-seam me-2"></i>Productos incluidos en el Paquete</h6>
+                    <div id="promo-items-container" class="mb-2">
+                        <!-- Filas de productos dinámicas -->
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addPromoItemRow()">+ Agregar Producto al Paquete</button>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-warning w-100 fw-bold">Publicar Promoción</button>
+                </div>
+            </form>
         </div>
     </div>
 

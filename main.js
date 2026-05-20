@@ -136,6 +136,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Manejar formularios de catálogo
+    const formCat = document.getElementById('form-admin-category');
+    if (formCat) {
+        formCat.addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveCategory();
+        });
+    }
+
+    const formProd = document.getElementById('form-admin-product');
+    if (formProd) {
+        formProd.addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveProduct();
+        });
+    }
+
+    const formPromo = document.getElementById('form-admin-promotion');
+    if (formPromo) {
+        formPromo.addEventListener('submit', (e) => {
+            e.preventDefault();
+            savePromotion();
+        });
+    }
+
     // Forzar renderizado del botón de Google al abrir el modal
     const modalAuth = document.getElementById('modalAuth');
     if (modalAuth) {
@@ -794,6 +819,7 @@ async function loadAdminOrders() {
                     <strong>${o.username || 'Cliente'}</strong><br>
                     <small class="text-muted">${o.phone || ''}</small>
                 </td>
+                <td class="fw-bold text-success">$${o.total.toFixed(2)}</td>
                 <td>
                     ${prizeBadge}
                     <span class="badge bg-primary d-block mb-1">
@@ -981,3 +1007,385 @@ function initCountdownTimers() {
         setInterval(updateCountdown, 1000);
     });
 }
+
+// --- FUNCIONES ADMINISTRATIVAS DEL CATÁLOGO ---
+
+window.loadAdminCatalog = async () => {
+    // This function is now responsible for loading categories and products
+    // and populating window.allCategories.
+    const res = await fetch(`${API_URL}/products/?t=${new Date().getTime()}`);
+    const categories = await res.json();
+    window.allCategories = categories; // Actualizar global
+
+    // Listar Categorías
+    const catList = document.getElementById('admin-categories-list');
+    catList.innerHTML = categories.map(c => {
+        // Para evitar que la imagen se vea rota si no hay URL
+        const imageUrl = c.image_url && c.image_url !== 'null' ? c.image_url : 'https://placehold.co/40';
+        return `
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <img src="${imageUrl}" style="width: 30px; height: 30px; object-fit: cover; margin-right: 10px;" class="rounded">
+                <div><strong>${c.name}</strong><br><small class="text-muted">${c.products.length} productos</small></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-outline-primary border-0" onclick="showEditCategoryModal(${c.id})"><i class="bi bi-pencil-square"></i></button>
+                <button class="btn btn-sm btn-outline-danger border-0" onclick="deleteCategory(${c.id})"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+    `}).join('');
+
+    // Listar Productos (aplanados)
+    const prodList = document.getElementById('admin-products-list');
+    let html = '';
+    categories.forEach(c => {
+        c.products.forEach(p => {
+            const imageUrl = p.image_url && p.image_url !== 'null' ? p.image_url : 'https://placehold.co/40';
+            html += `
+                <tr>
+                    <td><img src="${imageUrl}" style="width: 30px; height: 30px; object-fit: cover;" class="rounded"></td>
+                    <td><div class="fw-bold">${p.name}</div></td>
+                    <td><span class="badge bg-light text-dark border">${c.name}</span></td>
+                    <td class="text-primary fw-bold">$${p.price.toFixed(2)}</td>
+                    <td>${p.stock}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary border-0" onclick="showEditProductModal(${p.id})"><i class="bi bi-pencil-square"></i></button>
+                        <button class="btn btn-sm btn-outline-danger border-0" onclick="deleteProduct(${p.id})"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>`;
+        });
+    });
+    prodList.innerHTML = html || '<tr><td colspan="6" class="text-center p-4">No hay productos aún</td></tr>';
+
+    // Llenar select de categorías en el modal de producto
+    const prodCatSelect = document.getElementById('prod-cat');
+    prodCatSelect.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+};
+
+window.showCategoryModal = () => {
+    document.getElementById('form-admin-category').reset();
+    document.getElementById('cat-id').value = '';
+    document.getElementById('cat-modal-title').textContent = 'Nueva Categoría';
+    document.getElementById('cat-img-file').value = ''; // Clear file input
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAdminCategory')).show();
+};
+
+window.showEditCategoryModal = (id) => {
+    const cat = window.allCategories.find(c => c.id === id);
+    document.getElementById('cat-id').value = cat.id;
+    document.getElementById('cat-name').value = cat.name;
+    document.getElementById('cat-desc').value = cat.description || '';
+    document.getElementById('cat-img-file').value = ''; // Clear file input, user can choose new one
+    document.getElementById('cat-modal-title').textContent = 'Editar Categoría';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAdminCategory')).show();
+};
+
+async function uploadFile(fileInputId) {
+    const fileInput = document.getElementById(fileInputId);
+    if (!fileInput || fileInput.files.length === 0) return null;
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    const res = await fetch(`${API_URL}/products/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: formData
+    });
+    if (res.ok) {
+        const data = await res.json();
+        return data.url;
+    }
+    return null;
+}
+
+window.saveCategory = async () => {
+    const id = document.getElementById('cat-id').value;
+    const newImageUrl = await uploadFile('cat-img-file');
+    
+    // Si estamos editando y no subimos imagen nueva, mantenemos la anterior
+    let imageUrl = newImageUrl;
+    if (id && !newImageUrl) {
+        const cat = window.allCategories.find(c => c.id == id);
+        imageUrl = cat.image_url;
+    }
+
+    const payload = {
+        name: document.getElementById('cat-name').value,
+        description: document.getElementById('cat-desc').value,
+        image_url: imageUrl || ''
+    };
+
+    const url = id ? `${API_URL}/products/categories/${id}` : `${API_URL}/products/categories`;
+    const res = await fetch(url, {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('modalAdminCategory')).hide();
+        loadAdminCatalog();
+        loadDynamicStore();
+    }
+};
+
+window.deleteCategory = async (id) => {
+    if (!confirm("¿Eliminar categoría? Esto fallará si tiene productos asociados.")) return;
+    const res = await fetch(`${API_URL}/products/categories/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
+    if (res.ok) { loadAdminCatalog(); loadDynamicStore(); }
+    else alert("No se puede eliminar: comprueba que no tenga productos.");
+};
+
+window.showProductModal = () => {
+    document.getElementById('form-admin-product').reset();
+    document.getElementById('prod-id').value = '';
+    document.getElementById('prod-img-file').value = ''; // Clear file input
+    document.getElementById('prod-modal-title').textContent = 'Nuevo Producto';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAdminProduct')).show();
+};
+
+window.showEditProductModal = (id) => {
+    let product = null;
+    window.allCategories.forEach(c => {
+        const p = c.products.find(prod => prod.id === id);
+        if (p) product = { ...p, category_id: c.id };
+    });
+
+    document.getElementById('prod-id').value = product.id;
+    document.getElementById('prod-name').value = product.name;
+    document.getElementById('prod-cat').value = product.category_id;
+    document.getElementById('prod-price').value = product.price;
+    document.getElementById('prod-stock').value = product.stock;
+    document.getElementById('prod-weight').value = product.weight;
+    document.getElementById('prod-ideal').value = product.ideal_for || '';
+    document.getElementById('prod-img-file').value = ''; // Clear file input, user can choose new one
+    document.getElementById('prod-desc').value = product.description || '';
+    document.getElementById('prod-modal-title').textContent = 'Editar Producto';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAdminProduct')).show();
+};
+
+window.saveProduct = async () => {
+    const id = document.getElementById('prod-id').value;
+    const newImageUrl = await uploadFile('prod-img-file');
+
+    let imageUrl = newImageUrl;
+    if (id && !newImageUrl) {
+        // Buscar imagen previa
+        window.allCategories.forEach(c => {
+            const p = c.products.find(prod => prod.id == id);
+            if (p) imageUrl = p.image_url;
+        });
+    }
+
+    const payload = {
+        name: document.getElementById('prod-name').value,
+        category_id: document.getElementById('prod-cat').value,
+        price: document.getElementById('prod-price').value,
+        stock: document.getElementById('prod-stock').value,
+        weight: document.getElementById('prod-weight').value,
+        image_url: imageUrl || '',
+        ideal_for: document.getElementById('prod-ideal').value,
+        description: document.getElementById('prod-desc').value
+    };
+
+    const url = id ? `${API_URL}/products/${id}` : `${API_URL}/products/`;
+    const res = await fetch(url, {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('modalAdminProduct')).hide();
+        loadAdminCatalog();
+        loadDynamicStore();
+    }
+};
+
+window.deleteProduct = async (id) => {
+    if (!confirm("¿Eliminar este producto?")) return;
+    const res = await fetch(`${API_URL}/products/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
+    if (res.ok) { loadAdminCatalog(); loadDynamicStore(); }
+};
+
+window.loadAdminPromotionsTable = async () => {
+    // Ensure categories and products are loaded for the promotion item dropdowns
+    if (!window.allCategories || window.allCategories.length === 0) await loadAdminCatalog();
+    const res = await fetch(`${API_URL}/promotions/`);
+    const promos = await res.json();
+    const list = document.getElementById('admin-promos-list');
+    list.innerHTML = promos.map(p => `
+        <tr>
+            <td>${p.id}</td>
+            <td><strong>${p.promo_name}</strong><br><small class="text-muted">${p.description || ''}</small></td>
+            <td><small>${p.header_title || ''}</small><br><small class="text-muted">${p.header_subtitle || ''}</small></td>
+            <td><span class="text-decoration-line-through text-muted">$${p.original_price.toFixed(2)}</span><br><span class="fw-bold text-success">$${p.promo_price.toFixed(2)}</span></td>
+            <td>${new Date(p.expiration_date).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</td>
+            <td><span class="badge bg-${p.color_scheme}">${p.color_scheme}</span></td>
+            <td>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-primary border-0" onclick="showEditPromoModal(${p.id})"><i class="bi bi-pencil-square"></i></button>
+                    <button class="btn btn-sm btn-outline-danger border-0" onclick="deletePromo(${p.id})"><i class="bi bi-trash"></i></button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+    window.allPromotions = promos; // Guardar para edición
+};
+
+window.deletePromo = async (id) => {
+    if (!confirm("¿Eliminar promoción?")) return;
+    const res = await fetch(`${API_URL}/promotions/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
+    if (res.ok) { loadAdminPromotionsTable(); loadPromotions(); }
+};
+
+window.showPromoModal = () => {
+    document.getElementById('form-admin-promotion').reset();
+    document.getElementById('promo-id').value = ''; // Clear ID for new promo
+    document.getElementById('modalAdminPromotion').querySelector('.modal-title').textContent = 'Configurar Nueva Promoción';
+    document.getElementById('promo-items-container').innerHTML = '';
+    // Agregamos una fila inicial por defecto
+    addPromoItemRow();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAdminPromotion')).show();
+};
+
+window.showEditPromoModal = (id) => {
+    const promo = window.allPromotions.find(p => p.id === id);
+    if (!promo) {
+        alert("Promoción no encontrada para editar.");
+        return;
+    }
+
+    document.getElementById('promo-id').value = promo.id;
+    document.getElementById('modalAdminPromotion').querySelector('.modal-title').textContent = 'Editar Promoción';
+    document.getElementById('promo-header-title').value = promo.header_title;
+    document.getElementById('promo-header-subtitle').value = promo.header_subtitle || '';
+    document.getElementById('promo-name').value = promo.promo_name;
+    document.getElementById('promo-desc').value = promo.description || '';
+    document.getElementById('promo-price-orig').value = promo.original_price;
+    document.getElementById('promo-price-final').value = promo.promo_price;
+    
+    // Formatear fecha para input datetime-local
+    const expDate = new Date(promo.expiration_date);
+    const formattedExpDate = expDate.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+    document.getElementById('promo-expire').value = formattedExpDate;
+    
+    document.getElementById('promo-color').value = promo.color_scheme;
+
+    const container = document.getElementById('promo-items-container');
+    container.innerHTML = ''; // Limpiar items existentes
+    promo.items.forEach(item => addPromoItemRow(item.product_id, item.quantity));
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAdminPromotion')).show();
+};
+
+window.addPromoItemRow = () => {
+    const container = document.getElementById('promo-items-container');
+    const div = document.createElement('div');
+    div.className = 'row g-2 mb-2 align-items-end promo-item-row';
+    
+    // Obtener todos los productos aplanados para el select
+    let options = '';
+    // Ensure allCategories is loaded before trying to access it
+    if (!window.allCategories) { console.warn("allCategories not loaded, loading now..."); loadAdminCatalog(); }
+    
+    window.allCategories.forEach(c => {
+        c.products.forEach(p => {
+            options += `<option value="${p.id}">${c.name} - ${p.name}</option>`;
+        });
+    });
+
+    div.innerHTML = `
+        <div class="col-8">
+            <label class="small text-muted">Producto</label>
+            <select class="form-select form-select-sm item-product-id">${options}</select>
+        </div>
+        <div class="col-3">
+            <label class="small text-muted">Cant.</label>
+            <input type="number" class="form-control form-control-sm item-quantity" value="1" min="1">
+        </div>
+        <div class="col-1">
+            <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="this.parentElement.parentElement.remove()"><i class="bi bi-x-circle"></i></button>
+        </div>
+    `;
+    container.appendChild(div);
+};
+
+// Modified addPromoItemRow to accept initial values for editing
+window.addPromoItemRow = (initialProductId = null, initialQuantity = 1) => {
+    const container = document.getElementById('promo-items-container');
+    const div = document.createElement('div');
+    div.className = 'row g-2 mb-2 align-items-end promo-item-row';
+    
+    let options = '';
+    // Ensure allCategories is loaded before trying to access it
+    if (!window.allCategories) { console.warn("allCategories not loaded, loading now..."); loadAdminCatalog(); }
+    
+    window.allCategories.forEach(c => {
+        c.products.forEach(p => {
+            const selected = (initialProductId === p.id) ? 'selected' : '';
+            options += `<option value="${p.id}" ${selected}>${c.name} - ${p.name}</option>`;
+        });
+    });
+
+    div.innerHTML = `
+        <div class="col-8">
+            <label class="small text-muted">Producto</label>
+            <select class="form-select form-select-sm item-product-id">${options}</select>
+        </div>
+        <div class="col-3">
+            <label class="small text-muted">Cant.</label>
+            <input type="number" class="form-control form-control-sm item-quantity" value="${initialQuantity}" min="1">
+        </div>
+        <div class="col-1">
+            <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="this.parentElement.parentElement.remove()"><i class="bi bi-x-circle"></i></button>
+        </div>
+    `;
+    container.appendChild(div);
+};
+
+window.savePromotion = async () => {
+    const id = document.getElementById('promo-id').value;
+    const itemRows = document.querySelectorAll('.promo-item-row');
+    const items = Array.from(itemRows).map(row => ({
+        product_id: parseInt(row.querySelector('.item-product-id').value),
+        quantity: parseInt(row.querySelector('.item-quantity').value)
+    }));
+
+    const payload = {
+        header_title: document.getElementById('promo-header-title').value,
+        header_subtitle: document.getElementById('promo-header-subtitle').value,
+        promo_name: document.getElementById('promo-name').value,
+        description: document.getElementById('promo-desc').value,
+        original_price: document.getElementById('promo-price-orig').value,
+        promo_price: document.getElementById('promo-price-final').value,
+        expiration_date: document.getElementById('promo-expire').value,
+        color_scheme: document.getElementById('promo-color').value,
+        items: items
+    };
+
+    const url = id ? `${API_URL}/promotions/${id}` : `${API_URL}/promotions/`;
+    const method = id ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('modalAdminPromotion')).hide();
+        loadAdminPromotionsTable();
+        loadPromotions();
+    } else {
+        const err = await res.json();
+        alert("Error: " + (err.error || "No se pudo crear la promoción"));
+    }
+};
