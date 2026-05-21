@@ -21,6 +21,7 @@ let allUserOrders = [];
 let ordersCurrentPage = 1;
 const ordersPerPage = 10;
 let isIceAvailable = true;
+let isLoyaltyActive = true;
 let loyaltyThreshold = 50;
 
 // Definir handleGoogleSignIn globalmente fuera del DOMContentLoaded
@@ -123,6 +124,11 @@ document.addEventListener('DOMContentLoaded', () => {
         switchIce.addEventListener('change', (e) => toggleIceAvailability(e.target.checked));
     }
 
+    const switchLoyalty = document.getElementById('switch-loyalty-active');
+    if (switchLoyalty) {
+        switchLoyalty.addEventListener('change', (e) => toggleLoyaltyAvailability(e.target.checked));
+    }
+
     const modalCart = document.getElementById('modalCart');
     if (modalCart) modalCart.addEventListener('shown.bs.offcanvas', renderCart);
 
@@ -159,6 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             savePromotion();
         });
+    }
+
+    // Escuchar cambios en los precios de la promo para calcular ahorro
+    const priceFinal = document.getElementById('promo-price-final');
+    if (priceFinal) {
+        priceFinal.addEventListener('input', updateSavingsPercentage);
     }
 
     // Forzar renderizado del botón de Google al abrir el modal
@@ -674,37 +686,49 @@ async function loadOrders() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Error fetching user orders:", data.error || data.msg || "Unknown error");
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-5 text-danger">Error al cargar pedidos: ${data.error || data.msg || "Acceso denegado o sesión expirada."}</td></tr>`;
+            return;
+        }
+
         allUserOrders = data.orders;
         const accWeight = data.accumulated_weight;
+        isLoyaltyActive = data.loyalty_active;
         
         // Mostrar programa de lealtad
         const loyaltyContainer = document.getElementById('loyalty-container');
         if (loyaltyContainer) {
-            loyaltyContainer.classList.remove('d-none', 'border-warning');
-            document.getElementById('loyalty-current').textContent = `${accWeight} kg`;
-            document.getElementById('loyalty-target').textContent = `Meta: ${loyaltyThreshold} kg`;
-            
-            const percent = Math.min((accWeight / loyaltyThreshold) * 100, 100);
-            document.getElementById('loyalty-progress-bar').style.width = `${percent}%`;
-            document.getElementById('loyalty-progress-bar').className = percent >= 100 ? 'progress-bar bg-warning progress-bar-striped progress-bar-animated' : 'progress-bar bg-info';
-            
-            const msg = document.getElementById('loyalty-msg');
-            if (percent >= 100) {
-                const username = localStorage.getItem('username') || 'Cliente';
-                const waMessage = encodeURIComponent(`¡Hola! Soy ${username}. He completado mi meta de ${loyaltyThreshold}kg en el Programa de Lealtad de Hielito Mexicano ❄️. Adjunto captura de mi historial para canjear mi premio.`);
-                
-                loyaltyContainer.classList.add('border', 'border-warning', 'border-4');
-                msg.innerHTML = `
-                    <div class="d-flex flex-column align-items-center mt-3">
-                        <strong class="text-warning mb-2 fs-5">🏆 ¡FELICIDADES! META ALCANZADA</strong>
-                        <p class="small text-center mb-3">Toma una captura de pantalla de esta sección y presiona el botón para reclamar tu producto GRATIS por WhatsApp.</p>
-                        <a href="https://wa.me/527352282129?text=${waMessage}" target="_blank" class="btn btn-warning fw-bold shadow-sm text-dark px-4">
-                            <i class="bi bi-whatsapp me-2"></i> SOLICITAR PREMIO AHORA
-                        </a>
-                    </div>
-                `;
+            if (!isLoyaltyActive) {
+                loyaltyContainer.classList.add('d-none');
             } else {
-                msg.textContent = `Te faltan ${(loyaltyThreshold - accWeight).toFixed(1)} kg para tu regalo.`;
+                loyaltyContainer.classList.remove('d-none', 'border-warning');
+                document.getElementById('loyalty-current').textContent = `${accWeight} kg`;
+                document.getElementById('loyalty-target').textContent = `Meta: ${loyaltyThreshold} kg`;
+                
+                const percent = Math.min((accWeight / loyaltyThreshold) * 100, 100);
+                document.getElementById('loyalty-progress-bar').style.width = `${percent}%`;
+                document.getElementById('loyalty-progress-bar').className = percent >= 100 ? 'progress-bar bg-warning progress-bar-striped progress-bar-animated' : 'progress-bar bg-info';
+                
+                const msg = document.getElementById('loyalty-msg');
+                if (percent >= 100) {
+                    const username = localStorage.getItem('username') || 'Cliente';
+                    const waMessage = encodeURIComponent(`¡Hola! Soy ${username}. He completado mi meta de ${loyaltyThreshold}kg en el Programa de Lealtad de Hielito Mexicano ❄️. Adjunto captura de mi historial para canjear mi premio.`);
+                    
+                    loyaltyContainer.classList.add('border', 'border-warning', 'border-4');
+                    msg.innerHTML = `
+                        <div class="d-flex flex-column align-items-center mt-3">
+                            <strong class="text-warning mb-2 fs-5">🏆 ¡FELICIDADES! META ALCANZADA</strong>
+                            <p class="small text-center mb-3">Toma una captura de pantalla de esta sección y presiona el botón para reclamar tu producto GRATIS por WhatsApp.</p>
+                            <a href="https://wa.me/527352282129?text=${waMessage}" target="_blank" class="btn btn-warning fw-bold shadow-sm text-dark px-4">
+                                <i class="bi bi-whatsapp me-2"></i> SOLICITAR PREMIO AHORA
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    msg.textContent = `Te faltan ${(loyaltyThreshold - accWeight).toFixed(1)} kg para tu regalo.`;
+                }
             }
         }
 
@@ -789,6 +813,13 @@ async function loadAdminOrders() {
         });
         let orders = await response.json();
 
+        if (!response.ok) {
+            console.error("Error fetching admin orders:", orders.error || orders.msg || "Unknown error");
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-5 text-danger">Error al cargar pedidos: ${orders.error || orders.msg || "Acceso denegado o sesión expirada."}</td></tr>`;
+            return;
+        }
+
+
         // Aplicar filtro de rango de fechas si se han seleccionado
         if (startDateVal || endDateVal) {
             orders = orders.filter(o => {
@@ -821,16 +852,16 @@ async function loadAdminOrders() {
                     <small class="text-muted">${o.phone || ''}</small>
                 </td>
                 <td class="fw-bold text-success">$${o.total.toFixed(2)}</td>
-                <td>
-                    ${prizeBadge}
-                    <span class="badge bg-primary d-block mb-1">
-                        ${o.user_accumulated_weight} / ${loyaltyThreshold} kg
-                    </span>
-                    ${o.user_accumulated_weight >= loyaltyThreshold ? 
-                        `<button class="btn btn-dark btn-sm w-100 py-0" style="font-size: 0.7rem;" onclick="redeemLoyalty(${o.user_id}, '${o.username}')">🎁 CANJEAR</button>` : 
-                        ''
-                    }
-                </td>
+                <td>${isLoyaltyActive ? `
+                        ${prizeBadge}
+                        <span class="badge bg-primary d-block mb-1">
+                            ${o.user_accumulated_weight} / ${loyaltyThreshold} kg
+                        </span>
+                        ${o.user_accumulated_weight >= loyaltyThreshold ? 
+                            `<button class="btn btn-dark btn-sm w-100 py-0" style="font-size: 0.7rem;" onclick="redeemLoyalty(${o.user_id}, '${o.username}')">🎁 CANJEAR</button>` : 
+                            ''
+                        }
+                    ` : '<span class="text-muted small">Desactivado</span>'}</td>
                 <td>
                     <small class="d-block mb-1">📍 ${o.address}</small>
                     <div class="small fw-bold text-muted border-top pt-1">${o.items.map(i => `${i.quantity}x ${i.product_name}`).join(', ')}</div>
@@ -902,6 +933,42 @@ window.updateOrderStatus = async (id) => {
     }
 }
 
+async function toggleLoyaltyAvailability(available) {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${API_URL}/products/config`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ is_loyalty_active: available })
+        });
+        if (res.ok) {
+            isLoyaltyActive = available;
+            alert(available ? "✅ Programa de Lealtad ACTIVADO" : "⚠️ Programa de Lealtad DESACTIVADO");
+            checkGlobalAvailability();
+        }
+    } catch (e) {
+        alert("Error al cambiar configuración de lealtad.");
+    }
+}
+
+async function toggleLoyaltyAvailability(available) {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${API_URL}/products/config`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ is_loyalty_active: available })
+        });
+        if (res.ok) {
+            isLoyaltyActive = available;
+            alert(available ? "✅ Programa de Lealtad ACTIVADO" : "⚠️ Programa de Lealtad DESACTIVADO");
+            checkGlobalAvailability();
+        }
+    } catch (e) {
+        alert("Error al cambiar configuración de lealtad.");
+    }
+}
+
 async function toggleIceAvailability(available) {
     const token = localStorage.getItem('token');
     try {
@@ -941,10 +1008,14 @@ async function checkGlobalAvailability() {
         const res = await fetch(`${API_URL}/products/config`);
         const data = await res.json();
         isIceAvailable = data.is_ice_available;
+        isLoyaltyActive = data.is_loyalty_active;
         loyaltyThreshold = data.loyalty_threshold_kg;
         
         const switchIce = document.getElementById('switch-ice-availability');
         if (switchIce) switchIce.checked = isIceAvailable;
+
+        const switchLoyalty = document.getElementById('switch-loyalty-active');
+        if (switchLoyalty) switchLoyalty.checked = isLoyaltyActive;
 
         const loyaltyInput = document.getElementById('input-loyalty-threshold');
         if (loyaltyInput) loyaltyInput.value = loyaltyThreshold;
@@ -1258,6 +1329,68 @@ window.showPromoModal = () => {
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAdminPromotion')).show();
 };
 
+window.addPromoItemRow = (initialProductId = null, initialQuantity = 1) => {
+    const container = document.getElementById('promo-items-container');
+    const div = document.createElement('div');
+    div.className = 'row g-2 mb-2 align-items-end promo-item-row';
+    
+    let options = '';
+    if (!window.allCategories) { console.warn("allCategories not loaded, loading now..."); loadAdminCatalog(); }
+    
+    window.allCategories.forEach(c => {
+        c.products.forEach(p => {
+            const selected = (initialProductId === p.id) ? 'selected' : '';
+            options += `<option value="${p.id}" data-price="${p.price}" ${selected}>${c.name} - ${p.name}</option>`;
+        });
+    });
+
+    div.innerHTML = `
+        <div class="col-8">
+            <label class="small text-muted">Producto</label>
+            <select class="form-select form-select-sm item-product-id" onchange="autoCalculateOriginalPrice()">${options}</select>
+        </div>
+        <div class="col-3">
+            <label class="small text-muted">Cant.</label>
+            <input type="number" class="form-control form-control-sm item-quantity" value="${initialQuantity}" min="1" oninput="autoCalculateOriginalPrice()">
+        </div>
+        <div class="col-1">
+            <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="this.parentElement.parentElement.remove(); autoCalculateOriginalPrice();"><i class="bi bi-x-circle"></i></button>
+        </div>
+    `;
+    container.appendChild(div);
+    autoCalculateOriginalPrice();
+};
+
+window.autoCalculateOriginalPrice = () => {
+    const rows = document.querySelectorAll('.promo-item-row');
+    let total = 0;
+    rows.forEach(row => {
+        const select = row.querySelector('.item-product-id');
+        const qty = parseInt(row.querySelector('.item-quantity').value) || 0;
+        const price = parseFloat(select.options[select.selectedIndex]?.getAttribute('data-price')) || 0;
+        total += (price * qty);
+    });
+    const origInput = document.getElementById('promo-price-orig');
+    if (origInput) {
+        origInput.value = total.toFixed(2);
+        updateSavingsPercentage();
+    }
+};
+
+window.updateSavingsPercentage = () => {
+    const orig = parseFloat(document.getElementById('promo-price-orig').value) || 0;
+    const final = parseFloat(document.getElementById('promo-price-final').value) || 0;
+    const badge = document.getElementById('promo-savings-badge');
+    
+    if (orig > 0 && final > 0 && final < orig) {
+        const ahorro = Math.round((1 - (final / orig)) * 100);
+        badge.textContent = `-${ahorro}%`;
+        badge.classList.remove('d-none');
+    } else {
+        badge.classList.add('d-none');
+    }
+};
+
 window.showEditPromoModal = (id) => {
     const promo = window.allPromotions.find(p => p.id === id);
     if (!promo) {
@@ -1274,83 +1407,17 @@ window.showEditPromoModal = (id) => {
     document.getElementById('promo-price-orig').value = promo.original_price;
     document.getElementById('promo-price-final').value = promo.promo_price;
     
-    // Formatear fecha para input datetime-local
     const expDate = new Date(promo.expiration_date);
-    const formattedExpDate = expDate.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+    const formattedExpDate = expDate.toISOString().slice(0, 16);
     document.getElementById('promo-expire').value = formattedExpDate;
     
     document.getElementById('promo-color').value = promo.color_scheme;
 
     const container = document.getElementById('promo-items-container');
-    container.innerHTML = ''; // Limpiar items existentes
+    container.innerHTML = '';
     promo.items.forEach(item => addPromoItemRow(item.product_id, item.quantity));
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAdminPromotion')).show();
-};
-
-window.addPromoItemRow = () => {
-    const container = document.getElementById('promo-items-container');
-    const div = document.createElement('div');
-    div.className = 'row g-2 mb-2 align-items-end promo-item-row';
-    
-    // Obtener todos los productos aplanados para el select
-    let options = '';
-    // Ensure allCategories is loaded before trying to access it
-    if (!window.allCategories) { console.warn("allCategories not loaded, loading now..."); loadAdminCatalog(); }
-    
-    window.allCategories.forEach(c => {
-        c.products.forEach(p => {
-            options += `<option value="${p.id}">${c.name} - ${p.name}</option>`;
-        });
-    });
-
-    div.innerHTML = `
-        <div class="col-8">
-            <label class="small text-muted">Producto</label>
-            <select class="form-select form-select-sm item-product-id">${options}</select>
-        </div>
-        <div class="col-3">
-            <label class="small text-muted">Cant.</label>
-            <input type="number" class="form-control form-control-sm item-quantity" value="1" min="1">
-        </div>
-        <div class="col-1">
-            <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="this.parentElement.parentElement.remove()"><i class="bi bi-x-circle"></i></button>
-        </div>
-    `;
-    container.appendChild(div);
-};
-
-// Modified addPromoItemRow to accept initial values for editing
-window.addPromoItemRow = (initialProductId = null, initialQuantity = 1) => {
-    const container = document.getElementById('promo-items-container');
-    const div = document.createElement('div');
-    div.className = 'row g-2 mb-2 align-items-end promo-item-row';
-    
-    let options = '';
-    // Ensure allCategories is loaded before trying to access it
-    if (!window.allCategories) { console.warn("allCategories not loaded, loading now..."); loadAdminCatalog(); }
-    
-    window.allCategories.forEach(c => {
-        c.products.forEach(p => {
-            const selected = (initialProductId === p.id) ? 'selected' : '';
-            options += `<option value="${p.id}" ${selected}>${c.name} - ${p.name}</option>`;
-        });
-    });
-
-    div.innerHTML = `
-        <div class="col-8">
-            <label class="small text-muted">Producto</label>
-            <select class="form-select form-select-sm item-product-id">${options}</select>
-        </div>
-        <div class="col-3">
-            <label class="small text-muted">Cant.</label>
-            <input type="number" class="form-control form-control-sm item-quantity" value="${initialQuantity}" min="1">
-        </div>
-        <div class="col-1">
-            <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="this.parentElement.parentElement.remove()"><i class="bi bi-x-circle"></i></button>
-        </div>
-    `;
-    container.appendChild(div);
 };
 
 window.savePromotion = async () => {

@@ -366,6 +366,10 @@
                                         <input class="form-check-input" type="checkbox" id="switch-ice-availability" checked>
                                         <label class="form-check-label small" for="switch-ice-availability">Hielo Disponible</label>
                                     </div>
+                                    <div class="form-check form-switch border-end pe-3">
+                                        <input class="form-check-input" type="checkbox" id="switch-loyalty-active" checked>
+                                        <label class="form-check-label small" for="switch-loyalty-active">Lealtad Activa</label>
+                                    </div>
                                     <div class="small">
                                         Meta Lealtad: <input type="number" id="input-loyalty-threshold" class="d-inline form-control form-control-sm" style="width: 60px;"> kg
                                         <button class="btn btn-sm btn-outline-primary py-0" onclick="updateLoyaltyThreshold()"><i class="bi bi-check"></i></button>
@@ -505,8 +509,17 @@
                         <div class="col-md-4"><label class="form-label">Color (Bootstrap Class)</label><select id="promo-color" class="form-select"><option value="warning">Amarillo (Warning)</option><option value="success">Verde (Success)</option><option value="info">Azul (Info)</option><option value="danger">Rojo (Danger)</option></select></div>
                     </div>
                     <div class="row g-3 mb-3">
-                        <div class="col-md-4"><label class="form-label">Precio Original</label><input type="number" step="0.01" id="promo-price-orig" class="form-control" required></div>
-                        <div class="col-md-4"><label class="form-label">Precio Promo</label><input type="number" step="0.01" id="promo-price-final" class="form-control" required></div>
+                        <div class="col-md-4">
+                            <label class="form-label">Precio Original</label>
+                            <input type="number" step="0.01" id="promo-price-orig" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Precio Promo</label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" id="promo-price-final" class="form-control" required>
+                                <span class="input-group-text bg-success text-white small d-none" id="promo-savings-badge">0%</span>
+                            </div>
+                        </div>
                         <div class="col-md-4"><label class="form-label">Fecha Expiración</label><input type="datetime-local" id="promo-expire" class="form-control" required></div>
                     </div>
                     <div class="mb-3"><label class="form-label">Descripción corta</label><textarea id="promo-desc" class="form-control" rows="2"></textarea></div>

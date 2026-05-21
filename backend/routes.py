@@ -418,10 +418,12 @@ def get_config():
     try:
         config_ice = StoreConfig.query.filter_by(key='is_ice_available').first()
         config_loyalty = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
+        config_loyalty_active = StoreConfig.query.filter_by(key='is_loyalty_active').first()
         
         return jsonify({
             'is_ice_available': config_ice.value == 'true' if config_ice else True,
-            'loyalty_threshold_kg': int(config_loyalty.value) if config_loyalty else 50
+            'loyalty_threshold_kg': int(config_loyalty.value) if config_loyalty else 50,
+            'is_loyalty_active': config_loyalty_active.value == 'true' if config_loyalty_active else True
         }), 200
     except Exception as e:
         print(f"Error en get_config: {e}")
@@ -445,6 +447,13 @@ def update_config():
             config = StoreConfig(key='loyalty_threshold_kg', value='50')
             db.session.add(config)
         config.value = str(data.get('loyalty_threshold_kg'))
+
+    if 'is_loyalty_active' in data:
+        config = StoreConfig.query.filter_by(key='is_loyalty_active').first()
+        if not config:
+            config = StoreConfig(key='is_loyalty_active', value='true')
+            db.session.add(config)
+        config.value = 'true' if data.get('is_loyalty_active') else 'false'
 
     try:
         db.session.commit()
@@ -514,17 +523,21 @@ def process_payment():
 
     # --- LÓGICA DE LEALTAD AUTOMÁTICA ---
     # Verificar si el cliente es elegible para premio en este pedido
-    user_orders = Order.query.filter_by(user_id=current_user, status='Entregado').all()
-    hist_w = 0
-    for o in user_orders:
-        for i in o.items:
-            hist_w += (i.product.weight if i.product else 0) * i.quantity
-    
-    available_w = hist_w - (user.loyalty_redeemed_kg or 0)
-    threshold_cfg = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
-    threshold = float(threshold_cfg.value) if threshold_cfg else 50.0
-    
-    should_include_prize = available_w >= threshold
+    loyalty_active_cfg = StoreConfig.query.filter_by(key='is_loyalty_active').first()
+    is_loyalty_active = loyalty_active_cfg.value == 'true' if loyalty_active_cfg else True
+
+    should_include_prize = False
+    if is_loyalty_active:
+        user_orders = Order.query.filter_by(user_id=current_user, status='Entregado').all()
+        hist_w = 0
+        for o in user_orders:
+            for i in o.items:
+                hist_w += (i.product.weight if i.product else 0) * i.quantity
+        
+        available_w = hist_w - (user.loyalty_redeemed_kg or 0)
+        threshold_cfg = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
+        threshold = float(threshold_cfg.value) if threshold_cfg else 50.0
+        should_include_prize = available_w >= threshold
     # ------------------------------------
 
     order = Order(
@@ -601,6 +614,9 @@ orders = Blueprint('orders', __name__)
 @jwt_required()
 def get_orders():
     current_user = int(get_jwt_identity())
+    loyalty_active_cfg = StoreConfig.query.filter_by(key='is_loyalty_active').first()
+    is_loyalty_active = loyalty_active_cfg.value == 'true' if loyalty_active_cfg else True
+
     user = User.query.get(current_user)
     user_orders = Order.query.filter_by(user_id=current_user).order_by(Order.created_at.desc()).all()
     
@@ -616,7 +632,8 @@ def get_orders():
 
     return jsonify({
         'orders': [order.to_dict() for order in user_orders],
-        'accumulated_weight': round(available_weight, 2)
+        'accumulated_weight': round(available_weight, 2),
+        'loyalty_active': is_loyalty_active
     }), 200
 
 @orders.route('/admin/all', methods=['GET'])
@@ -672,8 +689,12 @@ def update_order_status(order_id):
     order = Order.query.get_or_404(order_id)
     
     if 'status' in data:
+        # Verificar si la lealtad está activa para procesar el canje
+        loyalty_active_cfg = StoreConfig.query.filter_by(key='is_loyalty_active').first()
+        is_loyalty_active = loyalty_active_cfg.value == 'true' if loyalty_active_cfg else True
+
         # LÓGICA DE LEALTAD: Si el pedido pasa a 'Entregado' y tenía premio, se procesa el canje
-        if data['status'] == 'Entregado' and order.status != 'Entregado' and order.has_loyalty_prize:
+        if data['status'] == 'Entregado' and order.status != 'Entregado' and order.has_loyalty_prize and is_loyalty_active:
             config_loyalty = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
             threshold = float(config_loyalty.value) if config_loyalty else 50.0
             # Sumamos la meta a lo canjeado para "reiniciar" el contador manteniendo el excedente

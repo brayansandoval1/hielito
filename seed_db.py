@@ -25,6 +25,10 @@ def seed_products():
         loyalty_config = StoreConfig(key='loyalty_threshold_kg', value='50')
         db.session.add(loyalty_config)
 
+        # Configuración inicial del estado del programa de lealtad
+        loyalty_active_config = StoreConfig(key='is_loyalty_active', value='true')
+        db.session.add(loyalty_active_config)
+
         # Definir Categorías y sus productos dinámicos
         data = [
             {
