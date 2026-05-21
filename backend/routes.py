@@ -427,11 +427,13 @@ def get_config():
         config_ice = StoreConfig.query.filter_by(key='is_ice_available').first()
         config_loyalty = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
         config_loyalty_active = StoreConfig.query.filter_by(key='is_loyalty_active').first()
+        config_whatsapp = StoreConfig.query.filter_by(key='whatsapp_phone').first()
         
         return jsonify({
             'is_ice_available': config_ice.value == 'true' if config_ice else True,
             'loyalty_threshold_kg': int(config_loyalty.value) if config_loyalty else 50,
-            'is_loyalty_active': config_loyalty_active.value == 'true' if config_loyalty_active else True
+            'is_loyalty_active': config_loyalty_active.value == 'true' if config_loyalty_active else True,
+            'whatsapp_phone': config_whatsapp.value if config_whatsapp else "527352282129"
         }), 200
     except Exception as e:
         print(f"Error en get_config: {e}")
@@ -463,6 +465,13 @@ def update_config():
             db.session.add(config)
         config.value = 'true' if data.get('is_loyalty_active') else 'false'
 
+    if 'whatsapp_phone' in data:
+        config = StoreConfig.query.filter_by(key='whatsapp_phone').first()
+        if not config:
+            config = StoreConfig(key='whatsapp_phone', value='527352282129')
+            db.session.add(config)
+        config.value = str(data.get('whatsapp_phone'))
+
     try:
         db.session.commit()
         return jsonify({'message': 'Configuración actualizada'}), 200
@@ -491,9 +500,6 @@ def process_payment():
     ice_config = StoreConfig.query.filter_by(key='is_ice_available').first()
     if ice_config and ice_config.value == 'false':
         return jsonify({'error': 'Lo sentimos, en este momento no tenemos hielo disponible. Por favor intenta más tarde o contáctanos por WhatsApp.'}), 403
-
-    if not stripe.api_key or "aqui" in stripe.api_key:
-        return jsonify({'error': 'La clave API de Stripe no está configurada en el servidor.'}), 500
 
     if not data or not data.get('items') or not data.get('payment_method'):
         return jsonify({'error': 'Faltan datos obligatorios'}), 422
@@ -572,7 +578,33 @@ def process_payment():
         db.session.add(item)
         entry['product'].stock -= entry['quantity']
 
+    # --- OPCIÓN: PEDIDO POR WHATSAPP ---
+    if data['payment_method'] == 'whatsapp':
+        try:
+            # Creamos el registro de pago como "pendiente"
+            payment = Payment(
+                order_id=order.id,
+                amount=total,
+                method='whatsapp',
+                status='pendiente_whatsapp',
+                transaction_id=f"WA-{order.id}-{int(time.time())}"
+            )
+            db.session.add(payment)
+            db.session.commit()
+            
+            send_admin_notification(order)
+            return jsonify({
+                'message': 'Pedido por WhatsApp registrado exitosamente',
+                'order': order.to_dict()
+            }), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': 'Error al registrar pedido de WhatsApp'}), 500
+
     # Procesar pago con Stripe
+    if not stripe.api_key or "aqui" in stripe.api_key:
+        return jsonify({'error': 'La clave API de Stripe no está configurada en el servidor.'}), 500
+
     try:
         payment_intent = stripe.PaymentIntent.create(
             amount=int(total * 100),  # Convertir a centavos
@@ -696,19 +728,37 @@ def update_order_status(order_id):
     data = request.get_json()
     order = Order.query.get_or_404(order_id)
     
+    # Validación: Si el estatus es 'Enviado', se requiere fecha y hora de entrega
+    if data.get('status') == 'Enviado':
+        if not data.get('delivery_date') or not data.get('delivery_time'):
+            return jsonify({'error': 'La fecha y hora de entrega son obligatorias para pedidos enviados.'}), 400
+
     if 'status' in data:
+        new_status = data['status']
+        old_status = order.status
+
+        # Manejo de stock si se cancela o des-cancela desde el admin
+        if new_status == 'Cancelado' and old_status != 'Cancelado':
+            for item in order.items:
+                if item.product:
+                    item.product.stock += item.quantity
+        elif old_status == 'Cancelado' and new_status != 'Cancelado':
+            for item in order.items:
+                if item.product:
+                    item.product.stock -= item.quantity
+
         # Verificar si la lealtad está activa para procesar el canje
         loyalty_active_cfg = StoreConfig.query.filter_by(key='is_loyalty_active').first()
         is_loyalty_active = loyalty_active_cfg.value == 'true' if loyalty_active_cfg else True
 
         # LÓGICA DE LEALTAD: Si el pedido pasa a 'Entregado' y tenía premio, se procesa el canje
-        if data['status'] == 'Entregado' and order.status != 'Entregado' and order.has_loyalty_prize and is_loyalty_active:
+        if new_status == 'Entregado' and old_status != 'Entregado' and order.has_loyalty_prize and is_loyalty_active:
             config_loyalty = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
             threshold = float(config_loyalty.value) if config_loyalty else 50.0
             # Sumamos la meta a lo canjeado para "reiniciar" el contador manteniendo el excedente
             order.user.loyalty_redeemed_kg = (order.user.loyalty_redeemed_kg or 0.0) + threshold
 
-        order.status = data['status']
+        order.status = new_status
     if 'delivery_date' in data:
         order.delivery_date = data['delivery_date']
     if 'delivery_time' in data:
@@ -727,6 +777,31 @@ def get_order(order_id):
     current_user = int(get_jwt_identity())
     order = Order.query.filter_by(id=order_id, user_id=current_user).first_or_404()
     return jsonify(order.to_dict()), 200
+
+@orders.route('/<int:order_id>/cancel', methods=['POST'])
+@jwt_required()
+def cancel_order(order_id):
+    """Permite al cliente cancelar un pedido si aún no ha sido enviado"""
+    current_user = int(get_jwt_identity())
+    order = Order.query.filter_by(id=order_id, user_id=current_user).first_or_404()
+
+    # Solo permitir cancelación si el estatus es el inicial
+    if order.status != 'Pendiente de envío':
+        return jsonify({'error': 'Solo se pueden cancelar pedidos que estén pendientes de envío.'}), 400
+
+    try:
+        # Devolver el stock de los productos al inventario
+        for item in order.items:
+            if item.product:
+                item.product.stock += item.quantity
+
+        order.status = 'Cancelado'
+        db.session.commit()
+        return jsonify({'message': 'Pedido cancelado exitosamente y stock devuelto.'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error al cancelar pedido: {e}")
+        return jsonify({'error': 'No se pudo cancelar el pedido en este momento.'}), 500
 
 # Ruta para servir la página principal
 main = Blueprint('main', __name__)

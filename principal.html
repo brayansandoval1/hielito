@@ -294,8 +294,9 @@
                         <p class="text-center text-muted mt-2" style="font-size: 0.75rem;"><i class="bi bi-shield-lock-fill me-1"></i> Tus pagos están protegidos con encriptación de grado bancario.</p>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary w-100 btn-lg" id="btn-confirm-payment">PAGAR AHORA</button>
+                <div class="modal-footer flex-column gap-2">
+                    <button type="button" class="btn btn-primary w-100 btn-lg shadow-sm" id="btn-confirm-payment">PAGAR CON TARJETA <i class="bi bi-credit-card ms-2"></i></button>
+                    <button type="button" class="btn btn-success w-100 btn-lg shadow-sm" id="btn-order-whatsapp">PEDIR POR WHATSAPP <i class="bi bi-whatsapp ms-2"></i></button>
                 </div>
             </div>
         </div>
@@ -373,6 +374,10 @@
                                     <div class="small">
                                         Meta Lealtad: <input type="number" id="input-loyalty-threshold" class="d-inline form-control form-control-sm" style="width: 60px;"> kg
                                         <button class="btn btn-sm btn-outline-primary py-0" onclick="updateLoyaltyThreshold()"><i class="bi bi-check"></i></button>
+                                    </div>
+                                    <div class="small border-start ps-3">
+                                        WhatsApp: <input type="text" id="input-whatsapp-phone" class="d-inline form-control form-control-sm" style="width: 120px;" placeholder="52...">
+                                        <button class="btn btn-sm btn-outline-success py-0" onclick="updateWhatsappPhone()"><i class="bi bi-save"></i></button>
                                     </div>
                                 </div>
                             </li>

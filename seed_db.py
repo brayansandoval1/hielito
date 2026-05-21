@@ -29,6 +29,10 @@ def seed_products():
         loyalty_active_config = StoreConfig(key='is_loyalty_active', value='true')
         db.session.add(loyalty_active_config)
 
+        # Configuración del teléfono de WhatsApp (sin espacios ni símbolos)
+        whatsapp_config = StoreConfig(key='whatsapp_phone', value='527352282129')
+        db.session.add(whatsapp_config)
+
         # Definir Categorías y sus productos dinámicos
         data = [
             {

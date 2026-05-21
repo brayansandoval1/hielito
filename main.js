@@ -23,6 +23,7 @@ const ordersPerPage = 10;
 let isIceAvailable = true;
 let isLoyaltyActive = true;
 let loyaltyThreshold = 50;
+let whatsappPhone = "527352282129";
 
 // Definir handleGoogleSignIn globalmente fuera del DOMContentLoaded
 window.handleGoogleSignIn = async (response) => {
@@ -212,6 +213,58 @@ document.addEventListener('DOMContentLoaded', () => {
             
             cartModal.hide();
             checkoutModal.show();
+        });
+    }
+
+    // Pedir por WhatsApp (Checkout Unificado)
+    const btnOrderWhatsapp = document.getElementById('btn-order-whatsapp');
+    if (btnOrderWhatsapp) {
+        btnOrderWhatsapp.addEventListener('click', async () => {
+            if (!isIceAvailable) {
+                alert("Operación cancelada: No hay disponibilidad de producto.");
+                return;
+            }
+            const token = localStorage.getItem('token');
+            if (!token || token === 'null') return alert("Inicia sesión para finalizar tu compra.");
+
+            const deliveryData = {
+                phone: document.getElementById('check-phone').value,
+                address: document.getElementById('check-address').value,
+                cp: document.getElementById('check-cp').value
+            };
+
+            if (!deliveryData.phone || !deliveryData.address || !deliveryData.cp) {
+                return alert("Por favor, completa todos los campos de entrega.");
+            }
+
+            const result = await processPayment(cart, 'whatsapp', deliveryData);
+            
+            if (result.error) {
+                alert("Error: " + result.error);
+            } else {
+                // Generar mensaje estructurado para WhatsApp
+                const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                const username = localStorage.getItem('username') || 'Cliente';
+                
+                const whatsappMsg = `¡Hola! 👋 Vengo de la tienda en línea Hielito Mexicano.\n\n` +
+                    `*NUEVO PEDIDO #${result.order.id}*\n` +
+                    `👤 *Cliente:* ${username}\n` +
+                    `📞 *Tel:* ${deliveryData.phone}\n` +
+                    `📍 *Dirección:* ${deliveryData.address}\n` +
+                    `📮 *CP:* ${deliveryData.cp}\n\n` +
+                    `📦 *Productos:*\n` +
+                    cart.map(item => `  - ${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`).join('\n') +
+                    `\n\n💰 *Total a pagar:* $${total.toFixed(2)}\n\n` +
+                    `Espero su confirmación para el envío. ¡Gracias! ❄️`;
+                
+                const waUrl = `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(whatsappMsg)}`;
+                
+                alert("¡Pedido registrado con éxito! Te redirigiremos a WhatsApp para finalizar la comunicación con el repartidor.");
+                
+                cart = [];
+                saveCart();
+                window.location.href = waUrl; // Redirección directa más confiable
+            }
         });
     }
 
@@ -762,7 +815,9 @@ function renderOrdersPage() {
 
     tbody.innerHTML = paginatedOrders.map(o => {
                 let statusHTML = '';
-                if (o.status === 'Enviado') {
+                if (o.status === 'Cancelado') {
+                    statusHTML = `<span class="badge rounded-pill bg-secondary"><i class="bi bi-x-circle me-1"></i> Cancelado</span>`;
+                } else if (o.status === 'Enviado') {
                     statusHTML = `<span class="badge rounded-pill bg-info"><i class="bi bi-truck me-1"></i> En camino</span>`;
                 } else if (o.status === 'Entregado') {
                     statusHTML = `<span class="badge rounded-pill bg-success"><i class="bi bi-check-circle me-1"></i> Entregado</span>`;
@@ -770,19 +825,26 @@ function renderOrdersPage() {
                     statusHTML = `<span class="badge rounded-pill bg-warning text-dark"><i class="bi bi-clock-history me-1"></i> En preparación</span>`;
                 }
 
-                const deliveryInfo = o.delivery_date 
-                    ? `<div class="mt-1 small fw-bold text-primary"><i class="bi bi-calendar-event me-1"></i> ${o.delivery_date} <i class="bi bi-alarm ms-1"></i> ${o.delivery_time || ''}</div>`
-                    : `<div class="mt-1 small text-muted italic">Logística en curso...</div>`;
+                const deliveryInfo = o.status === 'Cancelado'
+                    ? `<div class="mt-1 small text-danger italic">El pedido ha sido anulado.</div>`
+                    : (o.delivery_date 
+                        ? `<div class="mt-1 small fw-bold text-primary"><i class="bi bi-calendar-event me-1"></i> ${o.delivery_date} <i class="bi bi-alarm ms-1"></i> ${o.delivery_time || ''}</div>`
+                        : `<div class="mt-1 small text-muted italic">Logística en curso...</div>`);
 
                 const prizeBadge = o.has_loyalty_prize 
                     ? `<div class="mt-1"><span class="badge bg-warning text-dark border border-dark"><i class="bi bi-gift-fill me-1"></i> ¡INCLUYE REGALO!</span></div>` 
+                    : '';
+
+                // Botón de cancelación solo si está pendiente
+                const cancelBtn = o.status === 'Pendiente de envío' 
+                    ? `<button class="btn btn-link btn-sm text-danger p-0 d-block mt-2" onclick="cancelOrder(${o.id})">Cancelar pedido</button>` 
                     : '';
 
                 return `
                 <tr class="border-bottom">
                     <td class="ps-4"><span class="text-primary fw-bold">#${o.id}</span></td>
                     <td><div class="small">${o.items.map(i => `${i.quantity}x ${i.product_name}`).join('<br>')}</div></td>
-                    <td>${statusHTML}${prizeBadge}${deliveryInfo}</td>
+                    <td>${statusHTML}${prizeBadge}${deliveryInfo}${cancelBtn}</td>
                     <td><div class="small">${new Date(o.created_at).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })}</div></td>
                     <td class="text-end pe-4"><span class="fw-bold text-dark">$${o.total.toFixed(2)}</span></td>
                 </tr>`;
@@ -797,6 +859,28 @@ function renderOrdersPage() {
         pagContainer.innerHTML = totalPages > 1 ? html : '';
     }
 }
+
+window.cancelOrder = async (id) => {
+    if (!confirm(`¿Estás seguro de que deseas cancelar el pedido #${id}?`)) return;
+
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${API_URL}/orders/${id}/cancel`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.message);
+            loadOrders(); // Recargar la lista
+        } else {
+            alert(data.error || "No se pudo cancelar el pedido.");
+        }
+    } catch (e) { alert("Error de conexión al intentar cancelar."); }
+};
 
 window.changeOrdersPage = (page) => {
     ordersCurrentPage = page;
@@ -849,8 +933,10 @@ async function loadAdminOrders() {
                     <i class="bi bi-gift-fill me-1"></i> LLEVAR REGALO
                  </div>` : '';
 
+            const rowClass = o.status === 'Cancelado' ? 'table-secondary opacity-75' : (o.has_loyalty_prize ? 'table-warning' : '');
+
             return `
-            <tr class="${o.has_loyalty_prize ? 'table-warning' : ''}">
+            <tr class="${rowClass}">
                 <td class="fw-bold">#${o.id}</td>
                 <td><small>${dateStr}</small></td>
                 <td>
@@ -874,9 +960,11 @@ async function loadAdminOrders() {
                 </td>
                 <td>
                     <select class="form-select form-select-sm" id="status-${o.id}">
+                        <option value="Pendiente de envío" ${o.status === 'Pendiente de envío' ? 'selected' : ''}>Pendiente</option>
                         <option value="En proceso" ${o.status === 'En proceso' ? 'selected' : ''}>En proceso</option>
                         <option value="Enviado" ${o.status === 'Enviado' ? 'selected' : ''}>Enviado</option>
                         <option value="Entregado" ${o.status === 'Entregado' ? 'selected' : ''}>Entregado</option>
+                        <option value="Cancelado" ${o.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
                     </select>
                 </td>
                 <td>
@@ -923,6 +1011,12 @@ window.updateOrderStatus = async (id) => {
     const delivery_date = document.getElementById(`date-${id}`).value;
     const delivery_time = document.getElementById(`time-${id}`).value;
     const token = localStorage.getItem('token');
+
+    // Validación: Si el estatus es 'Enviado', la fecha y hora de entrega son obligatorias
+    if (status === 'Enviado' && (!delivery_date || !delivery_time)) {
+        alert("⚠️ Por favor, define la fecha y hora programada de entrega antes de marcar el pedido como 'Enviado'.");
+        return;
+    }
 
     try {
         const res = await fetch(`${API_URL}/orders/${id}/update`, {
@@ -993,6 +1087,24 @@ async function toggleIceAvailability(available) {
     }
 }
 
+async function updateWhatsappPhone() {
+    const val = document.getElementById('input-whatsapp-phone').value;
+    const token = localStorage.getItem('token');
+    if(!val) return alert("Ingresa un número válido");
+    
+    try {
+        const res = await fetch(`${API_URL}/products/config`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ whatsapp_phone: val })
+        });
+        if (res.ok) {
+            whatsappPhone = val;
+            alert("✅ Teléfono de WhatsApp actualizado correctamente.");
+        }
+    } catch (e) { alert("Error al actualizar teléfono"); }
+}
+
 async function updateLoyaltyThreshold() {
     const val = document.getElementById('input-loyalty-threshold').value;
     const token = localStorage.getItem('token');
@@ -1016,6 +1128,7 @@ async function checkGlobalAvailability() {
         isIceAvailable = data.is_ice_available;
         isLoyaltyActive = data.is_loyalty_active;
         loyaltyThreshold = data.loyalty_threshold_kg;
+        whatsappPhone = data.whatsapp_phone || "527352282129";
         
         const switchIce = document.getElementById('switch-ice-availability');
         if (switchIce) switchIce.checked = isIceAvailable;
@@ -1025,6 +1138,9 @@ async function checkGlobalAvailability() {
 
         const loyaltyInput = document.getElementById('input-loyalty-threshold');
         if (loyaltyInput) loyaltyInput.value = loyaltyThreshold;
+
+        const waInput = document.getElementById('input-whatsapp-phone');
+        if (waInput) waInput.value = whatsappPhone;
 
         renderCart(); // Para actualizar mensajes en el carrito
     } catch (e) {
