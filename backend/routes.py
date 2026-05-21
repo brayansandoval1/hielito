@@ -329,7 +329,8 @@ def create_product():
             stock=int(data.get('stock', 0)),
             image_url=data.get('image_url'),
             ideal_for=data.get('ideal_for'),
-            category_id=data['category_id']
+            category_id=data['category_id'],
+            is_active=data.get('is_active', True)
         )
         db.session.add(new_p)
         db.session.commit()
@@ -350,6 +351,7 @@ def update_product(product_id):
         p.stock = int(data.get('stock', 0))
         p.image_url = data.get('image_url')
         p.category_id = data['category_id']
+        p.is_active = data.get('is_active', True)
         db.session.commit()
         return jsonify(p.to_dict()), 200
     except Exception as e:
@@ -377,6 +379,7 @@ def update_category(cat_id):
         c.name = data['name']
         c.description = data.get('description')
         c.image_url = data.get('image_url')
+        c.is_active = data.get('is_active', True)
         db.session.commit()
         return jsonify(c.to_dict()), 200
     except Exception as e:
@@ -388,7 +391,12 @@ def update_category(cat_id):
 def create_category():
     data = request.get_json()
     try:
-        new_c = Category(name=data['name'], description=data.get('description'), image_url=data.get('image_url'))
+        new_c = Category(
+            name=data['name'], 
+            description=data.get('description'), 
+            image_url=data.get('image_url'),
+            is_active=data.get('is_active', True)
+        )
         db.session.add(new_c)
         db.session.commit()
         return jsonify(new_c.to_dict()), 201

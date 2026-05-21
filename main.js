@@ -281,13 +281,16 @@ async function loadDynamicStore() {
         const categories = await res.json();
         const container = document.getElementById('categories-container');
         
-        container.innerHTML = categories.map(cat => `
+        // Solo mostrar categorías ACTIVAS que tengan al menos un producto ACTIVO
+        const activeCategories = categories.filter(cat => cat.is_active);
+
+        container.innerHTML = activeCategories.map(cat => `
             <div class="col-md-6 col-lg-3">
                 <div class="product-card shadow-sm" style="cursor: pointer;" onclick="openCategory('${cat.id}')">
                     <div class="product-card-body">
                         <img src="${cat.image_url}" alt="${cat.name}" style="height: 300px; object-fit: contain;">
                         <h3 class="mt-3 text-uppercase">${cat.name}</h3>
-                        <p class="product-desc small">${cat.description || ''}</p>
+                        <p class="product-desc small text-muted">${cat.description || ''}</p>
                         <button class="btn btn-outline-primary btn-sm rounded-pill">Ver Opciones</button>
                     </div>
                 </div>
@@ -445,8 +448,11 @@ window.openCategory = (id) => {
     document.getElementById('dynamic-modal-img').src = cat.image_url;
     document.getElementById('dynamic-modal-desc').textContent = cat.description;
     
+    // Solo mostrar productos ACTIVOS dentro de la categoría
+    const activeProducts = cat.products.filter(p => p.is_active);
+
     const table = document.getElementById('dynamic-products-table');
-    table.innerHTML = cat.products.map(p => `
+    table.innerHTML = activeProducts.map(p => `
         <tr>
             <td><strong>${p.name}</strong></td>
             <td class="text-primary fw-bold">$${p.price.toFixed(2)}</td>
@@ -1096,9 +1102,13 @@ window.loadAdminCatalog = async () => {
         const imageUrl = c.image_url && c.image_url !== 'null' ? c.image_url : 'https://placehold.co/40';
         return `
         <div class="list-group-item d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center">
+            <div class="d-flex align-items-center ${!c.is_active ? 'opacity-50' : ''}">
                 <img src="${imageUrl}" style="width: 30px; height: 30px; object-fit: cover; margin-right: 10px;" class="rounded">
-                <div><strong>${c.name}</strong><br><small class="text-muted">${c.products.length} productos</small></div>
+                <div>
+                    <strong>${c.name}</strong>
+                    ${!c.is_active ? '<span class="badge bg-secondary ms-1" style="font-size: 0.6rem;">Oculto</span>' : ''}
+                    <br><small class="text-muted">${c.products.length} productos</small>
+                </div>
             </div>
             <div class="btn-group">
                 <button class="btn btn-sm btn-outline-primary border-0" onclick="showEditCategoryModal(${c.id})"><i class="bi bi-pencil-square"></i></button>
@@ -1114,9 +1124,12 @@ window.loadAdminCatalog = async () => {
         c.products.forEach(p => {
             const imageUrl = p.image_url && p.image_url !== 'null' ? p.image_url : 'https://placehold.co/40';
             html += `
-                <tr>
+                <tr class="${!p.is_active ? 'table-light opacity-75' : ''}">
                     <td><img src="${imageUrl}" style="width: 30px; height: 30px; object-fit: cover;" class="rounded"></td>
-                    <td><div class="fw-bold">${p.name}</div></td>
+                    <td>
+                        <div class="fw-bold">${p.name}</div>
+                        ${!p.is_active ? '<span class="badge bg-secondary" style="font-size: 0.6rem;">Inactivo</span>' : ''}
+                    </td>
                     <td><span class="badge bg-light text-dark border">${c.name}</span></td>
                     <td class="text-primary fw-bold">$${p.price.toFixed(2)}</td>
                     <td>${p.stock}</td>
@@ -1137,6 +1150,7 @@ window.loadAdminCatalog = async () => {
 window.showCategoryModal = () => {
     document.getElementById('form-admin-category').reset();
     document.getElementById('cat-id').value = '';
+    document.getElementById('cat-active').checked = true;
     document.getElementById('cat-modal-title').textContent = 'Nueva Categoría';
     document.getElementById('cat-img-file').value = ''; // Clear file input
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAdminCategory')).show();
@@ -1147,6 +1161,7 @@ window.showEditCategoryModal = (id) => {
     document.getElementById('cat-id').value = cat.id;
     document.getElementById('cat-name').value = cat.name;
     document.getElementById('cat-desc').value = cat.description || '';
+    document.getElementById('cat-active').checked = cat.is_active;
     document.getElementById('cat-img-file').value = ''; // Clear file input, user can choose new one
     document.getElementById('cat-modal-title').textContent = 'Editar Categoría';
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAdminCategory')).show();
@@ -1185,7 +1200,8 @@ window.saveCategory = async () => {
     const payload = {
         name: document.getElementById('cat-name').value,
         description: document.getElementById('cat-desc').value,
-        image_url: imageUrl || ''
+        image_url: imageUrl || '',
+        is_active: document.getElementById('cat-active').checked
     };
 
     const url = id ? `${API_URL}/products/categories/${id}` : `${API_URL}/products/categories`;
@@ -1214,6 +1230,7 @@ window.deleteCategory = async (id) => {
 window.showProductModal = () => {
     document.getElementById('form-admin-product').reset();
     document.getElementById('prod-id').value = '';
+    document.getElementById('prod-active').checked = true;
     document.getElementById('prod-img-file').value = ''; // Clear file input
     document.getElementById('prod-modal-title').textContent = 'Nuevo Producto';
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAdminProduct')).show();
@@ -1232,6 +1249,7 @@ window.showEditProductModal = (id) => {
     document.getElementById('prod-price').value = product.price;
     document.getElementById('prod-stock').value = product.stock;
     document.getElementById('prod-weight').value = product.weight;
+    document.getElementById('prod-active').checked = product.is_active;
     document.getElementById('prod-ideal').value = product.ideal_for || '';
     document.getElementById('prod-img-file').value = ''; // Clear file input, user can choose new one
     document.getElementById('prod-desc').value = product.description || '';
@@ -1260,7 +1278,8 @@ window.saveProduct = async () => {
         weight: document.getElementById('prod-weight').value,
         image_url: imageUrl || '',
         ideal_for: document.getElementById('prod-ideal').value,
-        description: document.getElementById('prod-desc').value
+        description: document.getElementById('prod-desc').value,
+        is_active: document.getElementById('prod-active').checked
     };
 
     const url = id ? `${API_URL}/products/${id}` : `${API_URL}/products/`;

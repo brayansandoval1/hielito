@@ -19,6 +19,7 @@ class Category(db.Model):
     name = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(db.String(255))
     image_url = db.Column(db.String(255))
+    is_active = db.Column(db.Boolean, default=True)
     products = db.relationship('Product', backref='category', lazy=True)
 
     def to_dict(self):
@@ -27,6 +28,7 @@ class Category(db.Model):
             "name": self.name,
             "description": self.description,
             "image_url": self.image_url,
+            "is_active": self.is_active,
             "products": [p.to_dict() for p in self.products]
         }
 
@@ -39,6 +41,7 @@ class Product(db.Model):
     stock = db.Column(db.Integer, default=0)
     image_url = db.Column(db.String(255))
     ideal_for = db.Column(db.String(255))
+    is_active = db.Column(db.Boolean, default=True)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
 
     def to_dict(self):
@@ -50,7 +53,8 @@ class Product(db.Model):
             "price": self.price,
             "stock": self.stock,
             "image_url": self.image_url,
-            "ideal_for": self.ideal_for
+            "ideal_for": self.ideal_for,
+            "is_active": self.is_active
         }
 
     def __repr__(self):
