@@ -249,7 +249,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = btn.getAttribute('data-id');
             const name = btn.getAttribute('data-name');
             const price = btn.getAttribute('data-price');
-            window.addToCartFromModal(id, name, price);
+            const weight = btn.getAttribute('data-weight') || 0;
+            window.addToCartFromModal(id, name, price, parseFloat(weight));
         });
     });
 
@@ -441,7 +442,7 @@ window.openCategory = (id) => {
             <td>
                 <div class="d-flex gap-2 align-items-center justify-content-end">
                     <input type="number" id="qty-${p.id}" class="form-control form-control-sm" value="1" min="1" style="width: 60px;">
-                    <button class="btn btn-sm btn-primary d-flex align-items-center" onclick="addToCartFromModal(${p.id}, '${p.name}', ${p.price})">
+                    <button class="btn btn-sm btn-primary d-flex align-items-center" onclick="addToCartFromModal(${p.id}, '${p.name}', ${p.price}, ${p.weight})">
                         <i class="bi bi-cart-plus-fill me-1"></i> 
                     </button>
                 </div>
@@ -452,7 +453,7 @@ window.openCategory = (id) => {
     new bootstrap.Modal(document.getElementById('modalDynamicProducts')).show();
 };
 
-window.addToCartFromModal = (id, name, price) => {
+window.addToCartFromModal = (id, name, price, weight = 0) => {
     let qtyInput = document.getElementById(`qty-${id}`);
 
     // Si no encuentra el input por ID (para modales estáticos), lo busca en el modal activo
@@ -477,7 +478,7 @@ window.addToCartFromModal = (id, name, price) => {
     if (existingItem) {
         existingItem.quantity += qty;
     } else {
-        cart.push({ product_id: id, name, price, quantity: qty });
+        cart.push({ product_id: id, name, price, quantity: qty, weight: weight });
     }
     
     saveCart();
