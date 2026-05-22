@@ -77,8 +77,13 @@ class Order(db.Model):
 
     items = db.relationship('OrderItem', backref='order', lazy=True)
     user = db.relationship('User', backref='orders')
+    payments = db.relationship('Payment', backref='order', lazy=True)
 
     def to_dict(self):
+        # Obtenemos el método de pago del primer registro de pago asociado
+        payment = self.payments[0] if self.payments else None
+        method = payment.method if payment else 'N/A'
+
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -90,6 +95,7 @@ class Order(db.Model):
             "delivery_time": self.delivery_time,
             "created_at": self.created_at.isoformat(),
             "items": [item.to_dict() for item in self.items],
+            "payment_method": method,
             "has_loyalty_prize": self.has_loyalty_prize,
             "total": self.total, # Mover total al final para consistencia
         }

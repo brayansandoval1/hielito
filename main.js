@@ -944,6 +944,11 @@ async function loadAdminOrders() {
                     <small class="text-muted">${o.phone || ''}</small>
                 </td>
                 <td class="fw-bold text-success">$${o.total.toFixed(2)}</td>
+                <td>
+                    <span class="badge ${o.payment_method === 'stripe' ? 'bg-info' : 'bg-success'} text-uppercase" style="font-size: 0.7rem;">
+                        ${o.payment_method}
+                    </span>
+                </td>
                 <td>${isLoyaltyActive ? `
                         ${prizeBadge}
                         <span class="badge bg-primary d-block mb-1">
