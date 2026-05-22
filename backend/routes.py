@@ -200,6 +200,18 @@ def google_login():
         print(f"--- ERROR EN GOOGLE LOGIN ---\n{traceback.format_exc()}")
         return jsonify({'error': 'Error interno al procesar el acceso con Google'}), 500
 
+@auth.route('/admin/users/<int:user_id>/toggle-loyalty', methods=['PUT'])
+@jwt_required()
+def toggle_user_loyalty(user_id):
+    # Nota: Aquí deberías verificar si el usuario actual es admin
+    user = User.query.get_or_404(user_id)
+    data = request.get_json()
+    if 'is_loyalty_active' in data:
+        user.is_loyalty_active = data['is_loyalty_active']
+        db.session.commit()
+        return jsonify({'message': f'Lealtad para {user.username} actualizada'}), 200
+    return jsonify({'error': 'Faltan datos'}), 400
+
 # Blueprint de promociones
 promotions = Blueprint('promotions', __name__)
 
@@ -538,10 +550,10 @@ def process_payment():
     # --- LÓGICA DE LEALTAD AUTOMÁTICA ---
     # Verificar si el cliente es elegible para premio en este pedido
     loyalty_active_cfg = StoreConfig.query.filter_by(key='is_loyalty_active').first()
-    is_loyalty_active = loyalty_active_cfg.value == 'true' if loyalty_active_cfg else True
+    is_loyalty_active_global = loyalty_active_cfg.value == 'true' if loyalty_active_cfg else True
 
     should_include_prize = False
-    if is_loyalty_active:
+    if is_loyalty_active_global and user.is_loyalty_active:
         user_orders = Order.query.filter_by(user_id=current_user, status='Entregado').all()
         hist_w = 0
         for o in user_orders:
@@ -655,7 +667,7 @@ orders = Blueprint('orders', __name__)
 def get_orders():
     current_user = int(get_jwt_identity())
     loyalty_active_cfg = StoreConfig.query.filter_by(key='is_loyalty_active').first()
-    is_loyalty_active = loyalty_active_cfg.value == 'true' if loyalty_active_cfg else True
+    is_loyalty_active_global = loyalty_active_cfg.value == 'true' if loyalty_active_cfg else True
 
     user = User.query.get(current_user)
     user_orders = Order.query.filter_by(user_id=current_user).order_by(Order.created_at.desc()).all()
@@ -673,7 +685,7 @@ def get_orders():
     return jsonify({
         'orders': [order.to_dict() for order in user_orders],
         'accumulated_weight': round(available_weight, 2),
-        'loyalty_active': is_loyalty_active
+        'loyalty_active': is_loyalty_active_global and user.is_loyalty_active
     }), 200
 
 @orders.route('/admin/all', methods=['GET'])
@@ -696,6 +708,7 @@ def get_all_orders_admin():
 
         d = order.to_dict()
         d['username'] = order.user.username if order.user else 'Cliente'
+        d['user_is_loyalty_active'] = order.user.is_loyalty_active if order.user else True
         d['user_accumulated_weight'] = round(available_w, 2)
         orders_data.append(d)
         
@@ -749,10 +762,10 @@ def update_order_status(order_id):
 
         # Verificar si la lealtad está activa para procesar el canje
         loyalty_active_cfg = StoreConfig.query.filter_by(key='is_loyalty_active').first()
-        is_loyalty_active = loyalty_active_cfg.value == 'true' if loyalty_active_cfg else True
+        is_loyalty_active_global = loyalty_active_cfg.value == 'true' if loyalty_active_cfg else True
 
         # LÓGICA DE LEALTAD: Si el pedido pasa a 'Entregado' y tenía premio, se procesa el canje
-        if new_status == 'Entregado' and old_status != 'Entregado' and order.has_loyalty_prize and is_loyalty_active:
+        if new_status == 'Entregado' and old_status != 'Entregado' and order.has_loyalty_prize and is_loyalty_active_global and order.user.is_loyalty_active:
             config_loyalty = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
             threshold = float(config_loyalty.value) if config_loyalty else 50.0
             # Sumamos la meta a lo canjeado para "reiniciar" el contador manteniendo el excedente

@@ -7,9 +7,15 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     loyalty_redeemed_kg = db.Column(db.Float, default=0.0)
+    is_loyalty_active = db.Column(db.Boolean, default=True)
 
     def to_dict(self):
-        return {"id": self.id, "username": self.username, "email": self.email}
+        return {
+            "id": self.id, 
+            "username": self.username, 
+            "email": self.email,
+            "is_loyalty_active": self.is_loyalty_active
+        }
 
     def __repr__(self):
         return f'<User {self.username} ({self.email})>'

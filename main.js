@@ -942,6 +942,10 @@ async function loadAdminOrders() {
                 <td>
                     <strong>${o.username || 'Cliente'}</strong><br>
                     <small class="text-muted">${o.phone || ''}</small>
+                    <div class="form-check form-switch mt-1">
+                        <input class="form-check-input" type="checkbox" id="user-loyalty-${o.user_id}" ${o.user_is_loyalty_active ? 'checked' : ''} onchange="toggleUserLoyalty(${o.user_id}, this.checked)">
+                        <label class="form-check-label small text-muted" style="font-size: 0.65rem;" for="user-loyalty-${o.user_id}">Lealtad Cliente</label>
+                    </div>
                 </td>
                 <td class="fw-bold text-success">$${o.total.toFixed(2)}</td>
                 <td>
@@ -1009,6 +1013,21 @@ window.redeemLoyalty = async (userId, username) => {
             loadAdminOrders();
         }
     } catch (e) { alert("Error al canjear premio."); }
+};
+
+window.toggleUserLoyalty = async (userId, active) => {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${API_URL}/auth/admin/users/${userId}/toggle-loyalty`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ is_loyalty_active: active })
+        });
+        if (!res.ok) throw new Error();
+        // No alertamos para que la experiencia sea fluida, pero podrías añadir un toast
+    } catch (e) {
+        alert("Error al actualizar el estado de lealtad del usuario.");
+    }
 };
 
 window.updateOrderStatus = async (id) => {
