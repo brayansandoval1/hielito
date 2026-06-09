@@ -1,5 +1,4 @@
 alembic==1.16.5
--e git+https://github.com/brayansandoval1/hielito.git@6cef18974dcfe43435b01917f9704a6625678a9a#egg=backend&subdirectory=../Hielito/backend
 blinker==1.9.0
 cachetools==5.5.2
 certifi==2026.2.25
