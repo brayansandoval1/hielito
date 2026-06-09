@@ -1,6 +1,5 @@
 from backend import create_app, db
-from backend.models import Product
-from sqlalchemy import text
+import os
 
 app = create_app()
 
@@ -10,5 +9,7 @@ def init_db():
     print("Base de datos inicializada.")
 
 if __name__ == '__main__':
-    # IMPORTANTE: Desactivar threading para SQLite
-    app.run(debug=True, threaded=False)
+    # Detectar el puerto asignado por el servidor o usar 5000 por defecto
+    port = int(os.environ.get("PORT", 5000))
+    # En producción usamos host 0.0.0.0 y desactivamos debug
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=False)

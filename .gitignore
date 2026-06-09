@@ -1,16 +1,8 @@
-# Entorno virtual
-venv/
-ENV/
-
-# Archivos de configuración sensible
-.env
-
-# Base de datos local
-*.db
-
-# Python cache
+instance/
 __pycache__/
 *.pyc
-
-# Mac OS
-.DS_Store
+.env
+.venv
+env/
+venv/
+hielito.db

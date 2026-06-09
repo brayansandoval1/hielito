@@ -29,8 +29,10 @@ def create_app():
 
     # Forzamos el uso de la ruta absoluta para SQLite para evitar errores de "unable to open database file"
     env_db_url = os.getenv('DATABASE_URL')
-    if env_db_url and not env_db_url.startswith('sqlite:'):
-        # Si es una base de datos externa (como PostgreSQL), usamos la del .env
+    if env_db_url:
+        # Corrección para compatibilidad con SQLAlchemy 1.4+ en plataformas como Render
+        if env_db_url.startswith("postgres://"):
+            env_db_url = env_db_url.replace("postgres://", "postgresql://", 1)
         app.config['SQLALCHEMY_DATABASE_URI'] = env_db_url
     else:
         # Para desarrollo local con SQLite, usamos siempre la ruta absoluta calculada
