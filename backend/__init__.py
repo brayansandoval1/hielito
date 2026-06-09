@@ -29,34 +29,43 @@ def create_app():
 
     # Forzamos el uso de la ruta absoluta para SQLite para evitar errores de "unable to open database file"
     env_db_url = os.getenv('DATABASE_URL')
+    is_sqlite = True
+
     if env_db_url:
         # Corrección para compatibilidad con SQLAlchemy 1.4+ en plataformas como Render
         if env_db_url.startswith("postgres://"):
             env_db_url = env_db_url.replace("postgres://", "postgresql://", 1)
         app.config['SQLALCHEMY_DATABASE_URI'] = env_db_url
+        if not env_db_url.startswith('sqlite'):
+            is_sqlite = False
     else:
         # Para desarrollo local con SQLite, usamos siempre la ruta absoluta calculada
         app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key')
     
-    # Configuracion para evitar database is locked en SQLite
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'connect_args': {
+    # Configuración de motor dinámica
+    engine_options = {'pool_pre_ping': True}
+    
+    if is_sqlite:
+        engine_options['connect_args'] = {
             'timeout': 30,
             'check_same_thread': False
-        },
-        'pool_pre_ping': True
-    }
+        }
+    
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_options
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     db.init_app(app)
 
-    # Configuración de PRAGMAs para SQLite mediante eventos de SQLAlchemy
+    # Configuración de PRAGMAs SOLO para SQLite
     @event.listens_for(Engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
+        # Verificar si la conexión es realmente SQLite antes de ejecutar PRAGMAs
+        if not app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
+            return
+            
         cursor = dbapi_connection.cursor()
-        # Establecemos el timeout primero para que la conexión espere si el archivo está ocupado
         cursor.execute("PRAGMA busy_timeout=5000")
         cursor.execute("PRAGMA foreign_keys=ON")
         

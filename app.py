@@ -9,7 +9,7 @@ def init_db():
     print("Base de datos inicializada.")
 
 if __name__ == '__main__':
-    # Detectar el puerto asignado por el servidor o usar 5000 por defecto
-    port = int(os.environ.get("PORT", 5000))
+    # Puerto 5001 para evitar conflictos en Mac
+    port = int(os.environ.get("PORT", 5001))
     # En producción usamos host 0.0.0.0 y desactivamos debug
-    app.run(host='0.0.0.0', port=port, debug=False, threaded=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
