@@ -33,25 +33,45 @@
     <nav class="navbar navbar-expand-lg custom-navbar sticky-top">
         <div class="container">
 <a class="navbar-brand" href="#">
-                <img src="img/logo2.jpeg" alt="Logo Hielito Mexicano" style="height: 80px;">
+                <img src="img/logo2.jpeg" alt="Logo Hielito Mexicano" id="navbar-logo">
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+
+            <!-- Botones de acción rápida SIEMPRE visibles -->
+            <div class="d-flex align-items-center ms-auto order-lg-last">
+                <button class="btn btn-outline-primary btn-sm me-2 d-flex align-items-center shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPedidos" title="Mis Pedidos">
+                    <i class="bi bi-clock-history fs-5"></i>
+                    <span class="d-none d-md-inline ms-1">Mis Pedidos</span>
+                </button>
+                
+                <div id="cart-nav-item" class="d-none">
+                    <button class="btn btn-warning btn-sm position-relative d-flex align-items-center shadow-sm" data-bs-toggle="offcanvas" data-bs-target="#modalCart">
+                        <i class="bi bi-cart3 fs-5"></i>
+                        <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">0</span>
+                    </button>
+                </div>
+
+                <button class="navbar-toggler ms-2 border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item"><a class="nav-link" href="#inicio">Inicio</a></li>
                     <li class="nav-item"><a class="nav-link" href="#productos">Productos</a></li>
                     <li class="nav-item"><a class="nav-link" href="#promociones">Promociones</a></li>
                     <li class="nav-item"><a class="nav-link" href="#nosotros">Nosotros</a></li>
                     <li class="nav-item"><a class="nav-link" href="#contacto">Contacto</a></li>
-                    <li class="nav-item" id="auth-nav-item"><button class="btn btn-primary ms-lg-3" data-bs-toggle="modal" data-bs-target="#modalAuth" id="btnAuth">Iniciar Sesión</button></li>
-                    <li class="nav-item d-none" id="admin-nav-item"><button class="btn btn-danger ms-lg-3" data-bs-toggle="modal" data-bs-target="#modalAdminOrders">Panel Admin</button></li>
-                    <li class="nav-item"><button class="btn btn-outline-primary ms-lg-3" data-bs-toggle="modal" data-bs-target="#modalPedidos" id="btnVerPedidos">Mis Pedidos</button></li>
-                    <li class="nav-item d-none" id="cart-nav-item">
-                        <button class="btn btn-warning ms-lg-2 position-relative d-flex align-items-center" data-bs-toggle="offcanvas" data-bs-target="#modalCart" id="btnVerCarrito">
-                            <i class="bi bi-cart3 me-2"></i> Carrito
-                            <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">0</span>
+                </ul>
+                <ul class="navbar-nav align-items-center">
+                    <li class="nav-item d-none w-100 mb-2 mb-lg-0 me-lg-2" id="admin-nav-item">
+                        <button class="btn btn-danger btn-sm w-100" data-bs-toggle="modal" data-bs-target="#modalAdminOrders">
+                            <i class="bi bi-shield-lock me-1"></i> Admin
+                        </button>
+                    </li>
+                    <li class="nav-item w-100" id="auth-nav-item">
+                        <button class="btn btn-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#modalAuth">
+                            <i class="bi bi-person-circle me-1"></i> Iniciar Sesión
                         </button>
                     </li>
                 </ul>
@@ -65,7 +85,7 @@
                 <div class="col-lg-7">
                     <h1 class="hero-title">FRESCO COMO MÉXICO.</h1>
                     <p class="hero-subtitle">CALIDAD QUE PERMANECE.</p>
-                    <button class="btn btn-ver-productos">VER PRODUCTOS</button>
+                    <button class="btn btn-ver-productos">HIELITO MEXICANO</button>
                 </div>
             </div>
         </div>
@@ -113,8 +133,9 @@
                         garantizar que cada bolsa, vaso o bloque de hielo cumpla con los estándares más exigentes. 
                         Nuestro compromiso es la calidad, la puntualidad y el servicio excepcional.
                     </p>
-                    <div class="row mt-4">
+                    <div class="row g-4 mt-2">
                         <div class="col-md-6">
+                            <div class="nosotros-card">
                             <h5 style="color: var(--azul-fuerte-textos);"><strong>¿Por qué elegirnos?</strong></h5>
                             <ul class="list-unstyled" style="color: var(--gris-texto);">
                                 <li><i class="bi bi-check-circle-fill text-primary"></i> Calidad garantizada</li>
@@ -122,8 +143,10 @@
                                 <li><i class="bi bi-check-circle-fill text-primary"></i> Precios competitivos</li>
                                 <li><i class="bi bi-check-circle-fill text-primary"></i> Servicio personalizado</li>
                             </ul>
+                            </div>
                         </div>
                         <div class="col-md-6">
+                            <div class="nosotros-card">
                             <h5 style="color: var(--azul-fuerte-textos);"><strong>Nuestros valores</strong></h5>
                             <ul class="list-unstyled" style="color: var(--gris-texto);">
                                 <li><i class="bi bi-award-fill text-warning"></i> Compromiso</li>
@@ -131,6 +154,7 @@
                                 <li><i class="bi bi-heart-fill text-danger"></i> Pasión por el servicio</li>
                                 <li><i class="bi bi-shield-check text-success"></i> Confianza</li>
                             </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -375,6 +399,10 @@
                                     <div class="small">
                                         Meta Lealtad: <input type="number" id="input-loyalty-threshold" class="d-inline form-control form-control-sm" style="width: 60px;"> kg
                                         <button class="btn btn-sm btn-outline-primary py-0" onclick="updateLoyaltyThreshold()"><i class="bi bi-check"></i></button>
+                                    </div>
+                                    <div class="small border-start ps-3">
+                                        Límite Hoy: <input type="number" id="input-delivery-threshold" class="d-inline form-control form-control-sm" style="width: 60px;"> kg
+                                        <button class="btn btn-sm btn-outline-primary py-0" onclick="updateDeliveryThreshold()"><i class="bi bi-check"></i></button>
                                     </div>
                                     <div class="small border-start ps-3">
                                         WhatsApp: <input type="text" id="input-whatsapp-phone" class="d-inline form-control form-control-sm" style="width: 120px;" placeholder="52...">

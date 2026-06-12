@@ -17,21 +17,53 @@
         .custom-navbar {
             background-color: white !important;
             border-bottom: 2px solid #e0e0e0;
+            padding: 10px 0;
         }
 
         .navbar-brand img {
-            height: 80px; 
+            height: 70px; 
+            transition: height 0.3s ease;
         }
 
         .navbar-nav .nav-link {
             color: var(--azul-fuerte-textos) !important;
             font-weight: 600;
-            padding: 10px 15px !important;
+            padding: 8px 15px !important;
             transition: color 0.3s ease;
+            font-size: 0.95rem;
         }
 
         .navbar-nav .nav-link:hover {
             color: var(--azul-principal) !important;
+        }
+
+        /* --- Ajuste específico para el menú móvil --- */
+        @media (max-width: 991.98px) {
+            .navbar-collapse {
+                background: #ffffff;
+                padding: 20px;
+                border-radius: 20px;
+                margin-top: 15px;
+                box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+                border: 1px solid rgba(0,0,0,0.05);
+            }
+            .navbar-brand img {
+                height: 55px;
+            }
+            #auth-nav-item, #admin-nav-item, #cart-nav-item {
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid #f0f0f0;
+            }
+            .navbar-text {
+                display: block;
+                margin-bottom: 10px;
+                background: var(--azul-hielo-claro);
+                padding: 8px 15px;
+                border-radius: 10px;
+                text-align: center;
+            }
+            #btnLogout { width: 100%; }
         }
 
         /* --- Sección Hero --- */
@@ -190,21 +222,35 @@
         /* --- Sección Nosotros --- */
         #nosotros {
             padding: 100px 0;
-            background-color: var(--azul-hielo-claro);
+            background: linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%);
         }
 
         #nosotros .lead {
             font-size: 1.2rem;
             font-weight: 400;
-            line-height: 1.8;
+            line-height: 1.9;
             color: #444;
         }
 
         #nosotros h5 {
             color: var(--azul-fuerte-textos);
-            font-weight: 700;
-            margin-top: 20px;
+            font-weight: 800;
+            margin-bottom: 1.2rem;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+
+        .nosotros-card {
+            background: white;
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(13, 71, 161, 0.05);
+            height: 100%;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+        .nosotros-card:hover { transform: translateY(-5px); }
 
         #nosotros .bi {
             margin-right: 10px;
@@ -234,23 +280,21 @@
                 background-attachment: scroll; /* Desactivar parallax en móvil para rendimiento */
             }
             .hero-title {
-                font-size: 2.8rem;
+                font-size: 2.4rem;
             }
             .hero-subtitle {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
             #productos {
                 margin-top: 0;
                 border-radius: 0;
             }
-            .custom-footer {
+            #nosotros {
+                padding: 60px 0;
                 text-align: center;
             }
-            .footer-col {
-                margin-bottom: 40px;
-            }
-            .custom-footer .d-flex {
-                justify-content: center;
+            #nosotros li {
+                text-align: left;
             }
         }
         #nosotros .text-primary {

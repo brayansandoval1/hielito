@@ -445,12 +445,14 @@ def get_config():
         config_loyalty = StoreConfig.query.filter_by(key='loyalty_threshold_kg').first()
         config_loyalty_active = StoreConfig.query.filter_by(key='is_loyalty_active').first()
         config_whatsapp = StoreConfig.query.filter_by(key='whatsapp_phone').first()
+        config_delivery = StoreConfig.query.filter_by(key='delivery_threshold_kg').first()
         
         return jsonify({
             'is_ice_available': config_ice.value == 'true' if config_ice else True,
             'loyalty_threshold_kg': int(config_loyalty.value) if config_loyalty else 50,
             'is_loyalty_active': config_loyalty_active.value == 'true' if config_loyalty_active else True,
-            'whatsapp_phone': config_whatsapp.value if config_whatsapp else "527352282129"
+            'whatsapp_phone': config_whatsapp.value if config_whatsapp else "527352282129",
+            'delivery_threshold_kg': int(config_delivery.value) if config_delivery else 20
         }), 200
     except Exception as e:
         print(f"Error en get_config: {e}")
@@ -474,6 +476,13 @@ def update_config():
             config = StoreConfig(key='loyalty_threshold_kg', value='50')
             db.session.add(config)
         config.value = str(data.get('loyalty_threshold_kg'))
+
+    if 'delivery_threshold_kg' in data:
+        config = StoreConfig.query.filter_by(key='delivery_threshold_kg').first()
+        if not config:
+            config = StoreConfig(key='delivery_threshold_kg', value='20')
+            db.session.add(config)
+        config.value = str(data.get('delivery_threshold_kg'))
 
     if 'is_loyalty_active' in data:
         config = StoreConfig.query.filter_by(key='is_loyalty_active').first()

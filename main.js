@@ -23,6 +23,7 @@ const ordersPerPage = 10;
 let isIceAvailable = true;
 let isLoyaltyActive = true;
 let loyaltyThreshold = 50;
+let deliveryThreshold = 20;
 let whatsappPhone = "527352282129";
 
 // Definir handleGoogleSignIn globalmente fuera del DOMContentLoaded
@@ -137,6 +138,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalCheckout) {
         modalCheckout.addEventListener('shown.bs.modal', () => {
             if (card) card.mount('#stripe-card-element');
+            
+            // Cargar datos de entrega guardados anteriormente
+            const savedData = JSON.parse(localStorage.getItem('hielito_delivery_data'));
+            if (savedData) {
+                if (savedData.phone) document.getElementById('check-phone').value = savedData.phone;
+                if (savedData.cp) document.getElementById('check-cp').value = savedData.cp;
+                if (savedData.address) document.getElementById('check-address').value = savedData.address;
+            }
         });
         modalCheckout.addEventListener('hidden.bs.modal', () => {
             if (card) card.unmount();
@@ -237,6 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return alert("Por favor, completa todos los campos de entrega.");
             }
 
+            // Guardar historial del formulario para futuras compras
+            localStorage.setItem('hielito_delivery_data', JSON.stringify(deliveryData));
+
             const result = await processPayment(cart, 'whatsapp', deliveryData);
             
             if (result.error) {
@@ -302,6 +314,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 address: document.getElementById('check-address').value,
                 cp: document.getElementById('check-cp').value
             };
+
+            // Guardar historial del formulario para futuras compras
+            localStorage.setItem('hielito_delivery_data', JSON.stringify(deliveryData));
 
             try {
                 const result = await processPayment(cart, paymentMethod.id, deliveryData);
@@ -625,16 +640,16 @@ function parseWeight(name) {
  * Calcula el compromiso de entrega basado en el peso
  */
 function getDeliveryEstimate(weight) {
-    if (weight <= 20) {
+    if (weight <= deliveryThreshold) {
         return {
             title: "⚡ ¡Entrega hoy mismo!",
-            text: "Tu pedido es ligero (hasta 20kg), por lo que lo recibirás en el transcurso de las próximas horas.",
+            text: `Tu pedido es ligero (hasta ${deliveryThreshold}kg), por lo que lo recibirás en el transcurso de las próximas horas.`,
             class: "alert-success"
         };
     } else {
         return {
             title: "🚚 Entrega programada en 48h",
-            text: "Debido al volumen de carga, procesaremos tu envío con transporte especial en un lapso de 48 horas.",
+            text: `Debido al volumen de carga (más de ${deliveryThreshold}kg), procesaremos tu envío con transporte especial en un lapso de 48 horas.`,
             class: "alert-info"
         };
     }
@@ -732,9 +747,9 @@ function updateAuthUI() {
         if (adminNavItem && username === 'usuario_prueba') adminNavItem.classList.remove('d-none');
         
         authNavItem.innerHTML = `
-            <div class="d-flex align-items-center">
-                <span class="navbar-text me-3 fw-bold" style="color: var(--azul-fuerte-textos);">Hola, ${username}</span>
-                <button class="btn btn-sm btn-outline-danger" id="btnLogout">Cerrar Sesión</button>
+            <div class="user-greeting-box">
+                <span class="small fw-bold text-primary"><i class="bi bi-person-check-fill me-1"></i> ${username}</span>
+                <button class="btn btn-sm btn-link text-danger text-decoration-none p-0 fw-bold" id="btnLogout" style="font-size: 0.8rem;">Cerrar Sesión</button>
             </div>
         `;
         document.getElementById('btnLogout').addEventListener('click', () => {
@@ -1169,6 +1184,23 @@ async function updateLoyaltyThreshold() {
     } catch (e) { alert("Error"); }
 }
 
+async function updateDeliveryThreshold() {
+    const val = document.getElementById('input-delivery-threshold').value;
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch(`${API_URL}/products/config`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ delivery_threshold_kg: parseInt(val) })
+        });
+        if (res.ok) {
+            deliveryThreshold = parseInt(val);
+            alert("✅ Límite de entrega inmediata actualizado a " + val + "kg");
+            renderCart(); // Refrescar textos si el carrito está abierto
+        }
+    } catch (e) { alert("Error al actualizar límite de entrega"); }
+}
+
 async function checkGlobalAvailability() {
     try {
         const res = await fetch(`${API_URL}/products/config`);
@@ -1176,6 +1208,7 @@ async function checkGlobalAvailability() {
         isIceAvailable = data.is_ice_available;
         isLoyaltyActive = data.is_loyalty_active;
         loyaltyThreshold = data.loyalty_threshold_kg;
+        deliveryThreshold = data.delivery_threshold_kg || 20;
         whatsappPhone = data.whatsapp_phone || "527352282129";
         
         const switchIce = document.getElementById('switch-ice-availability');
@@ -1186,6 +1219,9 @@ async function checkGlobalAvailability() {
 
         const loyaltyInput = document.getElementById('input-loyalty-threshold');
         if (loyaltyInput) loyaltyInput.value = loyaltyThreshold;
+
+        const deliveryInput = document.getElementById('input-delivery-threshold');
+        if (deliveryInput) deliveryInput.value = deliveryThreshold;
 
         const waInput = document.getElementById('input-whatsapp-phone');
         if (waInput) waInput.value = whatsappPhone;
