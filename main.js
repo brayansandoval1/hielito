@@ -279,6 +279,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const token = localStorage.getItem('token');
             if (!token || token === 'null') return alert("Inicia sesión para finalizar tu compra.");
 
+            // Deshabilitar botón y mostrar estado de procesamiento
+            btnConfirmPayment.disabled = true;
+            const originalText = btnConfirmPayment.innerHTML;
+            btnConfirmPayment.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> PROCESANDO PAGO...`;
+
             const { paymentMethod, error } = await stripe.createPaymentMethod({
                 type: 'card',
                 card: card,
@@ -286,6 +291,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (error) {
                 document.getElementById('stripe-errors').textContent = error.message;
+                // Re-habilitar botón en caso de error
+                btnConfirmPayment.disabled = false;
+                btnConfirmPayment.innerHTML = originalText;
                 return;
             }
 
@@ -295,15 +303,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 cp: document.getElementById('check-cp').value
             };
 
-            const result = await processPayment(cart, paymentMethod.id, deliveryData);
-            
-            if (result.error) {
-                alert("Error: " + result.error);
-            } else {
-                alert("¡Compra realizada con éxito! Estado: " + result.order.status);
-                cart = [];
-                saveCart();
-                location.reload();
+            try {
+                const result = await processPayment(cart, paymentMethod.id, deliveryData);
+                
+                if (result.error) {
+                    alert("Error: " + result.error);
+                    btnConfirmPayment.disabled = false;
+                    btnConfirmPayment.innerHTML = originalText;
+                } else {
+                    // Mostrar éxito en el botón antes de recargar
+                    btnConfirmPayment.classList.replace('btn-primary', 'btn-success');
+                    btnConfirmPayment.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i> ¡PAGO PROCESADO CON ÉXITO!`;
+                    
+                    setTimeout(() => {
+                        alert("¡Compra realizada con éxito! Tu pedido está en camino.");
+                        cart = [];
+                        saveCart();
+                        location.reload();
+                    }, 2000);
+                }
+            } catch (err) {
+                alert("Error de conexión al procesar el pago.");
+                btnConfirmPayment.disabled = false;
+                btnConfirmPayment.innerHTML = originalText;
             }
         });
     }

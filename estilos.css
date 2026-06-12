@@ -1,4 +1,3 @@
-
         :root {
             --azul-hielo-claro: #f0f7ff; /* Fondo de la página */
             --azul-principal: #1e88e5; /* El azul del logo */
@@ -6,12 +5,6 @@
             --amarillo-ver-productos: #fbc02d; /* Botón amarillo */
             --gris-texto: #5c5c5c; /* Texto descriptivo */
         }
-.hero-title{
-color: #e8dcdc;
-}
-.hero-subtitle{
-color: #30c4f6;
-}
         body {
             font-family: 'Open Sans', sans-serif;
             background-color: var(--azul-hielo-claro);
@@ -27,13 +20,14 @@ color: #30c4f6;
         }
 
         .navbar-brand img {
-            height: 60px; /* Ajusta según el tamaño de tu logo */
+            height: 80px; 
         }
 
         .navbar-nav .nav-link {
             color: var(--azul-fuerte-textos) !important;
             font-weight: 600;
             padding: 10px 15px !important;
+            transition: color 0.3s ease;
         }
 
         .navbar-nav .nav-link:hover {
@@ -42,30 +36,39 @@ color: #30c4f6;
 
         /* --- Sección Hero --- */
         .hero-section {
-            background: linear-gradient(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.6)),
-                        url('https://placehold.co/1920x600/b0e0f3/ffffff?text=Hielo+y+Palmas') center/cover no-repeat;
-            padding: 120px 0;
-            color: var(--azul-fuerte-textos);
+            background-image: url('img/fondo2.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            padding: 160px 0;
+            color: white;
             text-align: left;
+            position: relative;
+            z-index: 1;
         }
 
-        /* --- Reemplaza esta URL con una imagen real de hielo y palmeras --- */
-        .hero-section {
-            background-image: url('img/fondo2.jpeg');
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: -1;
         }
 
         .hero-title {
             font-family: 'Montserrat', sans-serif;
             font-weight: 800;
-            font-size: 4rem;
+            font-size: 4.5rem;
             line-height: 1.1;
             margin-bottom: 20px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
         }
 
         .hero-subtitle {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: 600;
             margin-bottom: 40px;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
         }
 
         .btn-ver-productos {
@@ -77,18 +80,24 @@ color: #30c4f6;
             text-transform: uppercase;
             font-size: 1.1rem;
             border: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
         }
 
         .btn-ver-productos:hover {
             background-color: #fdd835;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
         }
 
         /* --- Sección de Productos --- */
         #productos {
             padding: 80px 0;
             background-color: white;
-            border-radius: 50px 50px 0 0; /* Bordes redondeados de la sección */
+            border-radius: 50px 50px 0 0;
+            margin-top: -60px;
+            position: relative;
+            z-index: 2;
         }
 
         .seccion-titulo {
@@ -168,48 +177,38 @@ color: #30c4f6;
         .custom-footer {
             background-color: var(--azul-fuerte-textos);
             color: white;
-            padding: 80px 0;
-            border-radius: 0 0 50px 50px;
+            padding: 80px 0 20px 0;
+        }
+
+        .custom-footer h4 {
+            color: var(--amarillo-ver-productos);
+            font-family: 'Montserrat', sans-serif;
+            margin-bottom: 25px;
+            font-weight: 700;
         }
 
         /* --- Sección Nosotros --- */
         #nosotros {
-            padding: 80px 0;
-            background-color: white;
-            border-radius: 50px 50px 0 0;
-            margin-top: 50px;
+            padding: 100px 0;
+            background-color: var(--azul-hielo-claro);
         }
 
         #nosotros .lead {
-            font-size: 1.25rem;
+            font-size: 1.2rem;
             font-weight: 400;
-            line-height: 1.6;
+            line-height: 1.8;
+            color: #444;
         }
 
         #nosotros h5 {
             color: var(--azul-fuerte-textos);
-            font-weight: 600;
-            margin-bottom: 1rem;
+            font-weight: 700;
+            margin-top: 20px;
         }
 
-        #nosotros ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        #nosotros li {
-            margin-bottom: 0.5rem;
-            padding-left: 1.5rem;
-            position: relative;
-        }
-
-        #nosotros li:before {
-            content: '\2713';
-            position: absolute;
-            left: 0;
-            color: var(--amarillo-ver-productos);
-            font-weight: bold;
+        #nosotros .bi {
+            margin-right: 10px;
+            font-size: 1.2rem;
         }
 
         #nosotros .rounded {
@@ -217,9 +216,43 @@ color: #30c4f6;
         }
 
         #nosotros .shadow {
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15) !important;
         }
 
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 20px;
+            margin-top: 40px;
+            opacity: 0.7;
+        }
+
+        /* --- Ajustes Responsivos (Celulares) --- */
+        @media (max-width: 768px) {
+            .hero-section {
+                padding: 100px 0;
+                text-align: center;
+                background-attachment: scroll; /* Desactivar parallax en móvil para rendimiento */
+            }
+            .hero-title {
+                font-size: 2.8rem;
+            }
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+            #productos {
+                margin-top: 0;
+                border-radius: 0;
+            }
+            .custom-footer {
+                text-align: center;
+            }
+            .footer-col {
+                margin-bottom: 40px;
+            }
+            .custom-footer .d-flex {
+                justify-content: center;
+            }
+        }
         #nosotros .text-primary {
             color: var(--azul-principal) !important;
         }
