@@ -328,12 +328,20 @@
     color: #FFF;
     border-radius: 50px;
     text-align: center;
-    font-size: 30px;
-    box-shadow: 2px 2px 3px #999;
+    font-size: 35px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     z-index: 1000; /* Asegura que esté por encima de otros elementos */
     display: flex;
     justify-content: center;
     align-items: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.whatsapp-float:hover {
+    background-color: #128c7e;
+    color: #fff;
+    transform: scale(1.1);
 }
 
 /* --- Tarjetas de Promociones --- */
@@ -368,7 +376,59 @@
     display: inline-block;
 }
 
-        .promo-card .btn {
+
+/* --- Estilos Modal de Autenticación Profesional --- */
+.auth-modal .modal-content {
+    border-radius: 24px;
+}
+
+.auth-tabs {
+    background-color: #f0f2f5;
+    padding: 6px;
+    border-radius: 14px;
+}
+
+.auth-tabs .nav-link {
+    border-radius: 10px;
+    color: var(--gris-texto);
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.auth-tabs .nav-link.active {
+    background-color: white !important;
+    color: var(--azul-fuerte-textos) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.auth-separator {
+    position: relative;
+    text-align: center;
+    margin: 25px 0;
+}
+
+.auth-separator::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background-color: #e0e0e0;
+    z-index: 1;
+}
+
+.auth-separator span {
+    position: relative;
+    background-color: white;
+    padding: 0 15px;
+    z-index: 2;
+    color: #999;
+    font-size: 0.85rem;
+}
+
+.promo-card .btn {
     border-radius: 12px;
     transition: all 0.2s;
 }
