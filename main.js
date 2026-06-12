@@ -384,9 +384,9 @@ async function loadPromotions() {
                     <div class="promo-card shadow-sm h-100 border-0 overflow-hidden" style="min-height: 580px; max-height: 580px;">
                         <!-- 1. TITULO PRINCIPAL (MAYOR CONTRASTE) -->
                         <div class="bg-${promo.color_scheme} ${promo.color_scheme === 'warning' ? 'text-dark' : 'text-white'} p-3 text-center">
-                            <div class="small text-uppercase fw-bold opacity-75" style="font-size: 0.7rem;">${promo.header_title}</div>
-                            ${promo.header_subtitle ? `<div class="small mb-1" style="font-size: 0.75rem;">${promo.header_subtitle}</div>` : ''}
-                            <h3 class="mb-0 text-uppercase fs-5 fw-bold">${promo.promo_name}</h3>
+                            <span class="badge bg-light text-dark mb-2 px-3 py-2 fw-bold text-uppercase">${promo.header_title}</span>
+                            <h3 class="mb-1 fs-4 fw-bold">${promo.promo_name}</h3>
+                            ${promo.header_subtitle ? `<p class="mb-0 small opacity-80">${promo.header_subtitle}</p>` : ''}
                         </div>
                         
                         <div class="promo-body p-4 bg-white d-flex flex-column h-100">

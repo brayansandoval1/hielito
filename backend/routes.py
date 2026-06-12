@@ -29,6 +29,7 @@ def send_admin_notification(order):
     token = os.getenv('TELEGRAM_BOT_TOKEN') # Debes crear un bot en BotFather
     chat_id = os.getenv('TELEGRAM_CHAT_ID') # Tu ID de chat de Telegram
     if not token or not chat_id:
+        print("⚠️ Notificación de Telegram omitida: Faltan las variables TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID.")
         return
 
     mensaje = f"❄️ <b>¡NUEVO PEDIDO #{order.id}!</b>\n\n"
@@ -48,7 +49,11 @@ def send_admin_notification(order):
 
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
-        requests.post(url, json={'chat_id': chat_id, 'text': mensaje, 'parse_mode': 'HTML'}, timeout=5)
+        response = requests.post(url, json={'chat_id': chat_id, 'text': mensaje, 'parse_mode': 'HTML'}, timeout=5)
+        if response.status_code != 200:
+            print(f"❌ Error de Telegram API (Status {response.status_code}): {response.text}")
+        else:
+            print(f"✅ Notificación del pedido #{order.id} enviada con éxito.")
     except Exception as e:
         print(f"Error enviando notificación: {e}")
 
