@@ -26,6 +26,31 @@ let loyaltyThreshold = 50;
 let deliveryThreshold = 20;
 let whatsappPhone = "527352282129";
 
+// --- Configuración de Seguridad de Sesión ---
+let sessionTimeout;
+const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutos de inactividad
+const SESSION_MAX_AGE = 24 * 60 * 60 * 1000; // 24 horas de vida máxima del token
+
+function logoutUser() {
+    console.log("Sesión finalizada por seguridad/inactividad.");
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    localStorage.removeItem('hielito_cart');
+    localStorage.removeItem('session_start');
+    location.reload();
+}
+
+function resetInactivityTimer() {
+    if (!localStorage.getItem('token')) return;
+    
+    clearTimeout(sessionTimeout);
+    sessionTimeout = setTimeout(() => {
+        alert("Tu sesión ha expirado por inactividad. Por favor, ingresa de nuevo.");
+        logoutUser();
+    }, INACTIVITY_LIMIT);
+}
+// --------------------------------------------
+
 // Definir handleGoogleSignIn globalmente fuera del DOMContentLoaded
 window.handleGoogleSignIn = async (response) => {
     const id_token = response.credential;
@@ -40,6 +65,7 @@ window.handleGoogleSignIn = async (response) => {
         if (res.ok) {
             localStorage.setItem('token', data.access_token);
             localStorage.setItem('username', data.user.username);
+            localStorage.setItem('session_start', Date.now());
             location.reload();
         } else {
             alert("Error con Google Login: " + (data.error || "Algo salió mal."));
@@ -52,6 +78,20 @@ window.handleGoogleSignIn = async (response) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Hielito Mexicano listo');
+
+    // Verificar si la sesión ya cumplió su tiempo de vida máximo al cargar
+    if (localStorage.getItem('token')) {
+        const sessionStart = localStorage.getItem('session_start');
+        if (sessionStart && (Date.now() - sessionStart > SESSION_MAX_AGE)) {
+            logoutUser();
+        } else {
+            // Iniciar detección de inactividad
+            resetInactivityTimer();
+            ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'].forEach(evt => {
+                window.addEventListener(evt, resetInactivityTimer);
+            });
+        }
+    }
 
     loadDynamicStore();
     loadPromotions();
@@ -76,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.ok) {
                     localStorage.setItem('token', data.access_token);
                     localStorage.setItem('username', data.user.username);
+                    localStorage.setItem('session_start', Date.now());
                     location.reload();
                 } else {
                     alert(data.error || "Error al iniciar sesión");
@@ -265,7 +306,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     `📍 *Dirección:* ${deliveryData.address}\n` +
                     `📮 *CP:* ${deliveryData.cp}\n\n` +
                     `📦 *Productos:*\n` +
-                    cart.map(item => `  - ${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`).join('\n') +
+                    cart.map(item => {
+                        let line = `  - ${item.quantity}x ${item.name} ($${(item.price * item.quantity).toFixed(2)})`;
+                        if (item.is_promo && item.items) {
+                            item.items.forEach(sub => {
+                                line += `\n      • ${sub.quantity * item.quantity}x ${sub.product_name}`;
+                            });
+                        }
+                        return line;
+                    }).join('\n') +
                     `\n\n💰 *Total a pagar:* $${total.toFixed(2)}\n\n` +
                     `Espero su confirmación para el envío. ¡Gracias! ❄️`;
                 
@@ -411,7 +460,7 @@ async function loadPromotions() {
 
         container.innerHTML = promos.map(promo => {
             const itemsHtml = promo.items.map(item => 
-                `<li><strong>${item.quantity} ${item.product_name}</strong></li>`
+                `<li class="mb-1"><i class="bi bi-dot"></i> <strong>${item.quantity}x</strong> ${item.product_name}</li>`
             ).join('');
 
             const ahorro = Math.round((1 - promo.promo_price / promo.original_price) * 100);
@@ -752,13 +801,7 @@ function updateAuthUI() {
                 <button class="btn btn-sm btn-link text-danger text-decoration-none p-0 fw-bold" id="btnLogout" style="font-size: 0.8rem;">Cerrar Sesión</button>
             </div>
         `;
-        document.getElementById('btnLogout').addEventListener('click', () => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('username');
-            localStorage.removeItem('hielito_cart');
-            cart = [];
-            location.reload();
-        });
+        document.getElementById('btnLogout').addEventListener('click', logoutUser);
     } else {
         if (cartNavItem) cartNavItem.classList.add('d-none');
         if (adminNavItem) adminNavItem.classList.add('d-none');
@@ -1513,7 +1556,13 @@ window.loadAdminPromotionsTable = async () => {
     list.innerHTML = promos.map(p => `
         <tr>
             <td>${p.id}</td>
-            <td><strong>${p.promo_name}</strong><br><small class="text-muted">${p.description || ''}</small></td>
+            <td>
+                <strong>${p.promo_name}</strong><br>
+                <small class="text-muted">${p.description || ''}</small>
+                <div class="mt-2">
+                    ${p.items.map(i => `<span class="badge bg-light text-dark border-1 border me-1" style="font-size: 0.65rem;">${i.quantity}x ${i.product_name}</span>`).join('')}
+                </div>
+            </td>
             <td><small>${p.header_title || ''}</small><br><small class="text-muted">${p.header_subtitle || ''}</small></td>
             <td><span class="text-decoration-line-through text-muted">$${p.original_price.toFixed(2)}</span><br><span class="fw-bold text-success">$${p.promo_price.toFixed(2)}</span></td>
             <td>${new Date(p.expiration_date).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</td>

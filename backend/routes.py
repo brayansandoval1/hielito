@@ -42,10 +42,11 @@ def send_admin_notification(order):
         mensaje += "🎁 <b>¡ATENCIÓN: INCLUIR REGALO DE LEALTAD!</b> 🎁\n"
         
     for item in order.items:
-        # Asegurarse de que product_name esté disponible, ya sea de un producto o una promoción
-        product_name = item.product.name if item.product else "Producto desconocido"
-        mensaje += f"  - {item.quantity}x {product_name} (${item.price:.2f} c/u)\n"
-    mensaje += "📱 Revisa el Panel Admin para programar la entrega."
+        # Obtenemos el nombre real del producto desde la relación
+        p_name = item.product.name if item.product else "Producto desconocido"
+        mensaje += f"  • <b>{item.quantity}x</b> {p_name.upper()}\n"
+        
+    mensaje += "\n📱 Revisa el Panel Admin para programar la entrega."
 
     try:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
